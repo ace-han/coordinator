@@ -1,0 +1,127 @@
+<!-- The MIT License Copyright (c) 2004-2014, Ace Han Permission is hereby 
+	granted, free of charge, to any person obtaining a copy of this software 
+	and associated documentation files (the "Software"), to deal in the Software 
+	without restriction, including without limitation the rights to use, copy, 
+	modify, merge, publish, distribute, sublicense, and/or sell copies of the 
+	Software, and to permit persons to whom the Software is furnished to do so, 
+	subject to the following conditions: The above copyright notice and this 
+	permission notice shall be included in all copies or substantial portions 
+	of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY 
+	KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF 
+	MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN 
+	NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
+	DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+	ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+	DEALINGS IN THE SOFTWARE. -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.jenkins-ci.plugins</groupId>
+		<artifactId>plugin</artifactId>
+		<version>1.532.2</version>
+		<!-- which version of Jenkins is this plugin built against? -->
+	</parent>
+
+	<artifactId>coordinatorr</artifactId>
+	<packaging>hpi</packaging>
+	<version>1.0.0-SNAPSHOT</version>
+	<name>Building Coordinator Plugin</name>
+	<url>https://github.com/ace-han/coordinator</url>
+
+	<developers>
+		<developer>
+			<id>ace-han</id>
+			<name>Ace Han</name>
+		</developer>
+	</developers>
+
+	<scm>
+		<connection>scm:git:https://github.com/ace-han/coordinator</connection>
+		<developerConnection>scm:git:https://github.com/ace-han/coordinator.git</developerConnection>
+		<url>https://github.com/ace-han/coordinator.git</url>
+	</scm>
+	<!-- save the effort that configuration in %MAVEN_HOME%/conf/settings.xml -->
+	<repositories>
+		<repository>
+			<id>repo.jenkins-ci.org</id>
+			<url>http://repo.jenkins-ci.org/public/</url>
+		</repository>
+	</repositories>
+
+	<pluginRepositories>
+		<pluginRepository>
+			<id>repo.jenkins-ci.org</id>
+			<url>http://repo.jenkins-ci.org/public/</url>
+		</pluginRepository>
+	</pluginRepositories>
+
+	<dependencies>
+		<dependency>
+			<groupId>cglib</groupId>
+			<artifactId>cglib-nodep</artifactId>
+			<version>3.1</version><!-- used to be 2.1_3 -->
+		</dependency>
+	</dependencies>
+
+	<build>
+		<finalName>${project.artifactId}-${project.version}</finalName>
+		<defaultGoal>package</defaultGoal>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+			</resource>
+		</resources>
+		<plugins>
+			<plugin>
+				<groupId>org.jenkins-ci.tools</groupId>
+				<artifactId>maven-hpi-plugin</artifactId>
+				<!-- version specified in parent pom -->
+				<extensions>true</extensions>
+				<configuration>
+					<showDeprecation>true</showDeprecation>
+					<warSourceExcludes>**/*.java</warSourceExcludes>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.kohsuke.stapler</groupId>
+				<artifactId>maven-stapler-plugin</artifactId>
+				<!-- version specified in parent pom -->
+				<extensions>true</extensions>
+			</plugin>
+			<plugin>
+				<artifactId>maven-release-plugin</artifactId>
+				<!-- version specified in parent pom -->
+				<configuration>
+					<goals>deploy</goals>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.jvnet.localizer</groupId>
+				<artifactId>maven-localizer-plugin</artifactId>
+				<!-- version specified in parent pom -->
+				<executions>
+					<execution>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<fileMask>Messages.properties</fileMask>
+							<outputDirectory>target/generated-sources/localizer</outputDirectory>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<!-- version specified in parent pom -->
+			</plugin>
+			<plugin>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<!-- version specified in grandparent pom -->
+			</plugin>
+		</plugins>
+	</build>
+</project>
