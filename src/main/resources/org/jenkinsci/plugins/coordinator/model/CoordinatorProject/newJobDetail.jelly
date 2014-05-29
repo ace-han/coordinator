@@ -1,0 +1,6 @@
+
+<?jelly escape-by-default='true'?>
+<!-- some sort of tips here and it's still historical reasons named as newJobDetail.jelly -->
+<div>
+  ${%body}
+</div>

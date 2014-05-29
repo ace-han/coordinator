@@ -21,14 +21,14 @@
 	<parent>
 		<groupId>org.jenkins-ci.plugins</groupId>
 		<artifactId>plugin</artifactId>
-		<version>1.532.2</version>
+		<version>1.554.1</version>
 		<!-- which version of Jenkins is this plugin built against? -->
 	</parent>
 
-	<artifactId>coordinatorr</artifactId>
+	<artifactId>coordinator</artifactId>
 	<packaging>hpi</packaging>
 	<version>1.0.0-SNAPSHOT</version>
-	<name>Building Coordinator Plugin</name>
+	<name>Coordinator Plugin</name>
 	<url>https://github.com/ace-han/coordinator</url>
 
 	<developers>
