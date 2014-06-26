@@ -1,1 +1,1 @@
-1. track InitStrategy.listPluginArchives next time the this new extension to CoordinatorProject not working
+1. track InitStrategy.listPluginArchives next time the new extension to CoordinatorProject not working (Done. mvn clean will do)
