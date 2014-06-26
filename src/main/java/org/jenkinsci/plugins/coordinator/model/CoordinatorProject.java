@@ -1,13 +1,16 @@
 package org.jenkinsci.plugins.coordinator.model;
 
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
 import hudson.Extension;
 import hudson.model.ItemGroup;
 import hudson.model.TopLevelItem;
+import hudson.model.Descriptor;
 import hudson.model.Project;
+import hudson.tasks.Builder;
+import hudson.util.DescribableList;
 import jenkins.model.Jenkins;
+
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 @SuppressWarnings({ "unchecked" })
 public class CoordinatorProject extends
@@ -26,7 +29,18 @@ public class CoordinatorProject extends
 	protected Class<CoordinatorBuild> getBuildClass() {
 		return CoordinatorBuild.class;
 	}
-	
+
+	@Override
+	public DescribableList<Builder, Descriptor<Builder>> getBuildersList() {
+		DescribableList<Builder, Descriptor<Builder>> buildersList = super.getBuildersList();
+		if (buildersList.size() == 0){
+			// since DescribableList is CopyOnWriteList, 
+			// keep it simple in comparison via size == 0 not contains(xxx)
+			buildersList.add(new CoordinatorBuilder("abc"));
+		}
+		return buildersList;
+	}
+
 	@Restricted(NoExternalUse.class)
 	@Extension(ordinal = 1000)
 	public static class DescriptorImpl extends AbstractProjectDescriptor {
