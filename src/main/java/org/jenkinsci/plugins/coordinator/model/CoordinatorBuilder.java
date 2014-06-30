@@ -2,10 +2,14 @@ package org.jenkinsci.plugins.coordinator.model;
 
 import hudson.Extension;
 import hudson.model.AbstractProject;
+import hudson.model.Descriptor.FormException;
+import hudson.tasks.BatchFile;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
+import net.sf.json.JSONObject;
 
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * 
@@ -15,19 +19,23 @@ import org.kohsuke.stapler.DataBoundConstructor;
  */
 public class CoordinatorBuilder extends Builder {
 	
-	@DataBoundConstructor
-	public CoordinatorBuilder(String executionPlanJsonString){
-		setExecutionPlanJsonString(executionPlanJsonString);
+	private TreeNode executionPlan;
+	
+	public CoordinatorBuilder(){
+		setExecutionPlan(new TreeNode());
 	}
 	
-	private String executionPlanJsonString;
+	@DataBoundConstructor
+	public CoordinatorBuilder(TreeNode executionPlan){
+		setExecutionPlan(executionPlan);
+	}
 	
-	public String getExecutionPlanJsonString() {
-		return executionPlanJsonString;
+	public TreeNode getExecutionPlan() {
+		return executionPlan;
 	}
 
-	public void setExecutionPlanJsonString(String executionPlanJsonString) {
-		this.executionPlanJsonString = executionPlanJsonString;
+	public void setExecutionPlan(TreeNode executionPlan) {
+		this.executionPlan = executionPlan;
 	}
 
 	@Extension
@@ -43,6 +51,18 @@ public class CoordinatorBuilder extends Builder {
 		public String getDisplayName() {
 			return "Execution Plan";
 		}
+
+		@Override
+		public Builder newInstance(StaplerRequest req, JSONObject formData)
+				throws FormException {
+			JSONObject jsonObject = JSONObject.fromObject(
+											formData.getString("executionPlan"), 
+											TreeNode.JSON_CONFIG);
+			TreeNode executionPlan = (TreeNode)JSONObject.toBean(jsonObject, TreeNode.JSON_CONFIG);
+			return new CoordinatorBuilder(executionPlan);
+		}
+		
+		
 		
 	}
 }

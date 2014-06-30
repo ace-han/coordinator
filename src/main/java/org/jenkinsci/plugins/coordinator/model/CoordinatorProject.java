@@ -36,7 +36,7 @@ public class CoordinatorProject extends
 		if (buildersList.size() == 0){
 			// since DescribableList is CopyOnWriteList, 
 			// keep it simple in comparison via size == 0 not contains(xxx)
-			buildersList.add(new CoordinatorBuilder("abc"));
+			buildersList.add(new CoordinatorBuilder());
 		}
 		return buildersList;
 	}

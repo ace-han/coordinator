@@ -9,5 +9,5 @@
 	xmlns:p="/lib/hudson/project">
 	
 	<input id="jsonString" name="_.executionPlanJsonString" type="hidden" value="${it.executionPlanJsonString}"/>
-	
+	<input id="executionPlan" name="_.executionPlan" type="hidden" value="{'id':'testId','text':'testText','icon':'testIcon'}"/>
 </j:jelly>
