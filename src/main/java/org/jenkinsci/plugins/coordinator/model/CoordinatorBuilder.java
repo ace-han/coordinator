@@ -2,13 +2,13 @@ package org.jenkinsci.plugins.coordinator.model;
 
 import hudson.Extension;
 import hudson.model.AbstractProject;
-import hudson.model.Descriptor.FormException;
-import hudson.tasks.BatchFile;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
+import hudson.util.FormValidation;
 import net.sf.json.JSONObject;
 
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
 /**
@@ -49,7 +49,7 @@ public class CoordinatorBuilder extends Builder {
 		
 		@Override
 		public String getDisplayName() {
-			return "Execution Plan";
+			return "Coordinator";
 		}
 
 		@Override
@@ -63,6 +63,9 @@ public class CoordinatorBuilder extends Builder {
 		}
 		
 		
-		
+		public FormValidation doCheckExecutionPlan(@QueryParameter String value) {
+			  if(value != null)  return FormValidation.error("There's a problem here");
+			  else                return FormValidation.ok();
+		}
 	}
 }
