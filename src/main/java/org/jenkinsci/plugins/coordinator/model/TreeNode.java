@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import net.sf.json.JSONObject;
 import net.sf.json.JsonConfig;
 
 import org.apache.commons.lang.builder.EqualsBuilder;
@@ -13,22 +14,32 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 public class TreeNode {
 	private static final String[] REFLECTION_EXCLUDE_FIELDS = new String[] {"chidlren"};
 	static final JsonConfig JSON_CONFIG;
+	static final TreeNode EMPTY_ROOT;	// for every tree initialization
 	static {
 		JSON_CONFIG = new JsonConfig();
 		JSON_CONFIG.setRootClass(TreeNode.class);
 		HashMap<String, Class<?>> classMap = new HashMap<String, Class<?>>(3);
 		classMap.put("children", TreeNode.class);
+		classMap.put("state", State.class);
 		JSON_CONFIG.setClassMap(classMap);
 		// save the output log from unnecessary large size
-		JSON_CONFIG.setExcludes(new String[]{"parent"});
+		JSON_CONFIG.setExcludes(new String[]{"parent", "jsonString", "leaf"});
+		
+		EMPTY_ROOT = new TreeNode();
+		EMPTY_ROOT.setText("Root");
+		EMPTY_ROOT.setIcon("c-node serial");
 	}
+	
 	
 	private String id;
 	private String text;
 	private String icon;
-	private TreeNode parent;
+	
+	private transient TreeNode parent;
 
-	private List<TreeNode> children;
+	private List<TreeNode> children = new ArrayList<TreeNode>();
+	
+	private State state = new State();
 
 	public String getId() {
 		return id;
@@ -63,9 +74,6 @@ public class TreeNode {
 	}
 	
 	public List<TreeNode> getChildren() {
-		if(this.children == null){
-			this.children = new ArrayList<TreeNode>();
-		}
 		return this.children;
 	}
 
@@ -73,8 +81,24 @@ public class TreeNode {
 		this.children = children;
 	}
 
+	public State getState() {
+		return state;
+	}
+
+	public void setState(State state) {
+		this.state = state;
+	}
+	
 	public boolean isLeaf() {
 		return getChildren().size() == 0;
+	}
+	
+	public boolean shouldChildrenSerialRun(){
+		return this.icon.contains("serial");
+	}
+	
+	public boolean shouldChildrenParallelRun(){
+		return this.icon.contains("parallel");
 	}
 	
 	public String toString() {
@@ -90,7 +114,15 @@ public class TreeNode {
 		return HashCodeBuilder.reflectionHashCode(this, REFLECTION_EXCLUDE_FIELDS);
 	}
 
-	public String toJsonString(){
-		return null;
+	public String getJsonString(){
+		return JSONObject.fromObject(this, JSON_CONFIG).toString();
 	}
+	
+	public static class State {
+		public boolean opened = true;
+		public boolean disabled = false;
+	    public boolean selected = true;
+	    
+	    public State(){}
+	} 
 }

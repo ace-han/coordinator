@@ -25,6 +25,7 @@
 	<p:config-buildWrappers />
 	<f:section title="${%Build}">
 		<f:block>
+				<input type="hidden" id="checkProjectExistenceUrl" value="${it.descriptor.descriptorFullUrl}/checkProjectExistence"/>
 				<j:forEach var="builder" items="${it.builders}">
 					<j:set var="descriptor" value="${builder.descriptor}" />
 					<div name="builder" class="" descriptorId="${descriptor.id}">
@@ -47,7 +48,7 @@
 								<f:helpArea />
 						    </j:if>
 						
-							<st:include it="${builder}" from="${descriptor}" page="${descriptor.configPage}" optional="true" />
+							<st:include it="${builder}" from="${descriptor}" page="${descriptor.configPage}"/>
 						
 							<f:block>
 								<div align="right">

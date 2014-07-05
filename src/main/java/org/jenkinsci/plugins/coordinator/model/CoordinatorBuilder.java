@@ -5,6 +5,7 @@ import hudson.model.AbstractProject;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
+import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
 
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -22,7 +23,7 @@ public class CoordinatorBuilder extends Builder {
 	private TreeNode executionPlan;
 	
 	public CoordinatorBuilder(){
-		setExecutionPlan(new TreeNode());
+		setExecutionPlan(TreeNode.EMPTY_ROOT);
 	}
 	
 	@DataBoundConstructor
@@ -62,10 +63,15 @@ public class CoordinatorBuilder extends Builder {
 			return new CoordinatorBuilder(executionPlan);
 		}
 		
-		
 		public FormValidation doCheckExecutionPlan(@QueryParameter String value) {
-			  if(value != null)  return FormValidation.error("There's a problem here");
-			  else                return FormValidation.ok();
+			// this check maybe not that much meaningful
+			try{
+				JSONObject.fromObject(value, TreeNode.JSON_CONFIG);
+				return FormValidation.ok();
+			} catch(JSONException e){
+				return FormValidation.error(e.getMessage());
+			}
 		}
+		
 	}
 }
