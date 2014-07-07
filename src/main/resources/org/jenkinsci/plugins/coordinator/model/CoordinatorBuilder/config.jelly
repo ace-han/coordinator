@@ -74,9 +74,6 @@
 						execPlanJsonStrInput.val(jsonString);
     				}
     				
-    				// handle the situation if the apply button clicked 
-					Event.observe(form.get(0), "jenkins:apply", saveExecPlanJsonString);
-    				
     				// submit seizure
 					var form = $('form[action="configSubmit"]').on('submit', function(event){
 						
@@ -107,15 +104,17 @@
 						}
 						return true;
 					});
+					// handle the situation if the apply button clicked 
+					Event.observe(form.get(0), "jenkins:apply", saveExecPlanJsonString);
 					
     				// Avoid incidently typing "Enter" will trigger submit event in the config page
 					var timeoutRef = setTimeout(function removeFormKeyPressedListeners(){
 						var listeners = YAHOO.util.Event.getListeners(form.get(0), 'keypress');
 						if(listeners){
-							YAHOO.util.Event.removeListener(form, 'keypress', listeners);
-							clearTimeout(timeoutHandler);
+							YAHOO.util.Event.removeListener(form.get(0), 'keypress', listeners);
+							clearTimeout(timeoutRef);
 						} else{
-							timeoutHandler = setTimeout(removeFormKeyPressedListeners, 100);
+							timeoutRef = setTimeout(removeFormKeyPressedListeners, 100);
 						}
 					}, 100);
 
