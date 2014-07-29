@@ -5,7 +5,7 @@ mvn hpi:run -Djetty.port=8090 -Dhpi.prefix=/jenkins
 
 # Runnning Maven with JRebel
 title coordinator
-set MAVEN_OPTS=-javaagent:D:/Dev/eclipse/jee/plugins/org.zeroturnaround.eclipse.embedder_5.6.0.RELEASE-201406251309/jrebel/jrebel.jar -XX:MaxPermSize=128m -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=8000,suspend=n
+set MAVEN_OPTS=-javaagent:D:/Dev/eclipse/jee/plugins/org.zeroturnaround.eclipse.embedder_5.6.1.RELEASE-201407230821/jrebel/jrebel.jar -XX:MaxPermSize=128m -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=8000,suspend=n
 mvn hpi:run -Djetty.port=8090 -Dhpi.prefix=/jenkins
 
 # set MAVEN_OPTS=-javaagent:/path/to/jrebel.jar -XX:MaxPermSize=128m -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=8000,suspend=n
