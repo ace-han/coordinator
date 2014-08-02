@@ -70,7 +70,7 @@
     				}
     				state plugin is not what we expected, still not get auto-check feature ... */
     				
-    				$('#execPlan').jstree({plugins: ['checkbox'/*, 'contextmenu'*/, 'dnd', 'search'/*, 'state'*/],
+    				$('#execPlan').jstree({plugins: ['checkbox', 'contextmenu', 'dnd', 'search'/*, 'state'*/],
 										// this combination with tie_selection set false is what ui expected
 										checkbox: {/*keep_selected_style: false, */whole_node: false, tie_selection: false},
 										contextmenu: {select_node: false},

@@ -27,8 +27,7 @@ public class TreeNode {
 		
 		EMPTY_ROOT = new TreeNode();
 		EMPTY_ROOT.setText("Root");
-		// c-node stands "coordinator node"
-		EMPTY_ROOT.setIcon("c-node serial"); // ROOT default is serial node
+		EMPTY_ROOT.setIcon("coordinator-icon coordinator-serial"); // ROOT default is serial node
 	}
 	
 	

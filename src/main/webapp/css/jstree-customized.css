@@ -1,0 +1,18 @@
+/* jsTree customized style */
+.jstree-default .coordinator-icon {
+	background-repeat: no-repeat;
+	background-size: contain;
+	height: 20px !important;
+	line-height: 20px !important;
+}
+.jstree-default .coordinator-leaf {
+	background-image: url('../images/coordinator-leaf.ico'); 
+}
+
+.jstree-default .coordinator-serial {
+	background-image: url('../images/coordinator-serial.ico');
+}
+
+.jstree-default .coordinator-parallel {
+	background-image: url('../images/coordinator-parallel.ico');
+}
