@@ -27,7 +27,8 @@ public class TreeNode {
 		
 		EMPTY_ROOT = new TreeNode();
 		EMPTY_ROOT.setText("Root");
-		EMPTY_ROOT.setIcon("c-node serial");
+		// c-node stands "coordinator node"
+		EMPTY_ROOT.setIcon("c-node serial"); // ROOT default is serial node
 	}
 	
 	
@@ -122,6 +123,7 @@ public class TreeNode {
 		public boolean opened = true;
 		public boolean disabled = false;
 	    public boolean selected = true;
+	    public boolean checked = false;
 	    
 	    public State(){}
 	} 

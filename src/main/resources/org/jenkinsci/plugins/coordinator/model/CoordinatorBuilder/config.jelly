@@ -9,6 +9,7 @@
 	xmlns:p="/lib/hudson/project">
 	<f:entry title="${%Execution Plan}" field="executionPlan">
 		<link rel="stylesheet" href="${rootURL}/plugin/coordinator/js/jstree/themes/default/style.min.css" />
+		<link rel="stylesheet" href="${rootURL}/plugin/coordinator/css/jstree-customized.css" />
 		<div>
         	<div id="execPlan">
         		<ul>
@@ -30,8 +31,9 @@
         
 	</f:entry>
 	<st:once>
-    	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/jquery.min.js"></script>
+    	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/jquery.js"></script>
     	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/jstree/jstree.js"></script>
+    	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/jstree-customized.js"></script>
     	<script type="text/javascript"><![CDATA[
     		(function jQueryNamespacing($){
     			$(function(){
@@ -57,9 +59,31 @@
     				// Since Prototype.js has already polluted Object.toJSON. We won't be able to init jstree via json data turn to HTML data instead
     				// var execPlanJson = $.parseJSON(execPlanJsonStrInput.val());
     				
-    				$('#execPlan').jstree({plugins: ['checkbox', 'contextmenu', 'dnd', 'search', 'wholerow'],
-    										core: {check_callback: true}
-    										});
+    				// 'state' plugin is polluted by prototype, do not enable 'state' plugin unless get below snippet enabled
+    				/* snippet
+    				originVakataGet = $.vakata.storage.get;
+    				$.vakata.storage.get = function(key){
+    					var result = originVakataGet(key);
+    					result = $.parseJSON(result);
+    					console.dir(result);
+    					return result;
+    				}
+    				state plugin is not what we expected, still not get auto-check feature ... */
+    				
+    				$('#execPlan').jstree({plugins: ['checkbox'/*, 'contextmenu'*/, 'dnd', 'search'/*, 'state'*/],
+										// this combination with tie_selection set false is what ui expected
+										checkbox: {/*keep_selected_style: false, */whole_node: false, tie_selection: false},
+										contextmenu: {select_node: false},
+										core: {check_callback: true}
+										})
+										.on('ready.jstree', function(){
+											jstreeInst.get_container().find('.jstree-leaf[jstree-checked="true"]').each(function(i, e){
+												jstreeInst.check_node(e);
+											});
+										})
+					var jstreeInst = $.jstree.reference('#execPlan');
+    								
+
     				
     				function saveExecPlanJsonString(){
     					try{
@@ -121,7 +145,6 @@
     			});
     		})(jQuery.noConflict());
     	]]></script>
-    							
 	<!-- 
 		doCheckXXX approach is not suitable for our case, since Http Get request got QueryParameter limited length (2k)
 		we may leave the node validation 
