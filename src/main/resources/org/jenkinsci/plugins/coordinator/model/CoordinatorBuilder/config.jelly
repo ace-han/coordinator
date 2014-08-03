@@ -125,6 +125,14 @@
 													}};
 						}
 						
+						if(inst.is_leaf(node)){
+							items['config'] = {label: 'Configure',
+												action: function(data){
+													var jobName = inst.get_node(data.reference).text.trim();
+													location.href = rootURL + '/job/' + jobName + '/configure';
+												}}
+						}
+						
 						if(inst.get_path(node).length == 1){
 							// Root should not be deleted
 							delete items.remove;
@@ -165,7 +173,7 @@
 											})
 										})
 										.on('create_node.jstree', function(event, data){
-											var jstreeInst = $.jstree.reference(data.node);
+											var jstreeInst = data.instance;
 											jstreeInst.set_type(data.node, 'leaf');
 											if(jstreeInst.get_type(data.parent) === 'leaf'){
 												jstreeInst.set_type(data.parent, 'serial');
@@ -185,7 +193,7 @@
 											jstreeInst.open_node(data.parent);
 										})
 										.on('move_node.jstree', function(event, data){
-											var jstreeInst = $.jstree.reference(data.node);
+											var jstreeInst = data.instance;
 											if(!jstreeInst.get_node(data.old_parent).children.length){
 												jstreeInst.set_type(data.old_parent, 'leaf');
 											}
@@ -195,7 +203,7 @@
 											jstreeInst.open_node(data.parent);
 										})
 										.on('delete_node.jstree', function(event, data){
-											var jstreeInst = $.jstree.reference(data.node);
+											var jstreeInst = data.instance;
 											if(!jstreeInst.get_node(data.node.parent).children.length){
 												jstreeInst.set_type(data.node.parent, 'leaf');
 											}
