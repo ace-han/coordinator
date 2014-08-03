@@ -7,8 +7,8 @@
 	xmlns:t="/lib/hudson" 
 	xmlns:f="/lib/form"
 	xmlns:p="/lib/hudson/project">
-	<li data-jstree='{"opened": ${it.state.opened}, "selected": ${it.state.selected}, "disabled":${it.state.disabled}, "checked": ${it.state.checked}, "icon": "${it.icon}"}'
-		id="${it.id}" jstree-checked="${it.state.checked}">${it.text}
+	<li data-jstree='{"opened": ${it.state.opened}, "selected": ${it.state.selected}, "disabled":${it.state.disabled}, "checked": ${it.state.checked}, "type": "${it.type}"}'
+		id="${it.id}">${it.text}
 		<j:forEach var="node" items="${it.children}">
 			<ul>
 				<st:include it="${node}" page="config.jelly"/>

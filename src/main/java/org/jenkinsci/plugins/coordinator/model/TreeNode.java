@@ -27,13 +27,16 @@ public class TreeNode {
 		
 		EMPTY_ROOT = new TreeNode();
 		EMPTY_ROOT.setText("Root");
-		EMPTY_ROOT.setIcon("coordinator-icon coordinator-serial"); // ROOT default is serial node
+		
+		// ROOT default is serial node
+		EMPTY_ROOT.setType("serial");
+		// EMPTY_ROOT.state.type = "serial";
 	}
 	
 	
 	private String id;
 	private String text;
-	private String icon;
+	private String type;
 	
 	private transient TreeNode parent;
 
@@ -54,15 +57,15 @@ public class TreeNode {
 	}
 
 	public void setText(String text) {
-		this.text = text;
+		this.text = text.trim();
 	}
 
-	public String getIcon() {
-		return icon;
+	public String getType() {
+		return type;
 	}
 
-	public void setIcon(String icon) {
-		this.icon = icon;
+	public void setType(String type) {
+		this.type = type;
 	}
 	
 	public TreeNode getParent() {
@@ -94,13 +97,22 @@ public class TreeNode {
 	}
 	
 	public boolean shouldChildrenSerialRun(){
-		return this.icon.contains("serial");
+		return this.type == "serial";
 	}
 	
 	public boolean shouldChildrenParallelRun(){
-		return this.icon.contains("parallel");
+		return this.type == "parallel";
 	}
 	
+/*	
+	public boolean shouldChildrenSerialRun(){
+		return this.state.type == "serial";
+	}
+	
+	public boolean shouldChildrenParallelRun(){
+		return this.state.type == "parallel";
+	}
+*/	
 	public String toString() {
 		return ToStringBuilder.reflectionToString(this);
 	}
@@ -123,6 +135,8 @@ public class TreeNode {
 		public boolean disabled = false;
 	    public boolean selected = true;
 	    public boolean checked = false;
+	    
+	    //public String type; // it's weird that type in state doesnot change as ui changes
 	    
 	    public State(){}
 	} 

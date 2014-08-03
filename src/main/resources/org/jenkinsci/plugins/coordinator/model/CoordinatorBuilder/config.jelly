@@ -70,24 +70,151 @@
     				}
     				state plugin is not what we expected, still not get auto-check feature ... */
     				
-    				$('#execPlan').jstree({plugins: ['checkbox', 'contextmenu', 'dnd', 'search'/*, 'state'*/],
+    				function customizedMenu(node) {
+    					var inst = $.jstree.reference(node);
+    					var nodeType = inst.get_type(node);
+    					var switchType;
+						if(nodeType == 'serial'){
+							switchType = 'parallel';
+						} else if(nodeType == 'parallel'){
+							switchType = 'serial';
+						}
+						
+						var items = $.jstree.defaults.contextmenu.items();
+						items.rename.shortcut = 113,
+						items.rename.shortcut_label = 'F2';
+						
+						items.remove.shortcut = 46,
+						items.remove.shortcut_label = 'Del';
+						if(switchType){
+							items['switch'] = {separator_before: true,
+										  icon: false,
+										  separator_after: false,
+										  label: 'Switch ' + switchType[0].toUpperCase(), 
+										  action: function(data){
+										      var node = inst.get_node(data.reference);
+											  inst.set_type(node, switchType);
+										  }};
+						}
+						
+						if(inst.is_disabled(node)){
+							items['enable'] = {label: 'Enable',
+												action: function(data){
+														var targets = inst.get_selected();
+														if(!targets.length){
+															targets = [inst.get_node(data.reference)]
+														}
+														for(var i=0; i<targets.length; i++){
+						    								var node = inst.get_node(targets[i]);
+						    								inst.enable_node(inst.get_path(node, undefined, true));
+						    								inst.enable_node(node.children_d);				
+														}
+													}};
+						} else {
+							items['disable'] = {label: 'Disable',
+												action: function(data){
+														var targets = inst.get_selected();
+														if(!targets.length){
+															targets = [inst.get_node(data.reference)]
+														}
+														for(var i=0; i<targets.length; i++){
+						    								var node = inst.get_node(targets[i]);
+						    								inst.disable_node(node);
+						    								inst.disable_node(node.children_d);
+														}
+													}};
+						}
+						
+						if(inst.get_path(node).length == 1){
+							// Root should not be deleted
+							delete items.remove;
+						}
+						return items;
+					}
+    				
+    				$('#execPlan').jstree({plugins: ['checkbox', 'contextmenu', 'dnd', 'search', 'types'/*, 'state'*/],
 										// this combination with tie_selection set false is what ui expected
 										checkbox: {/*keep_selected_style: false, */whole_node: false, tie_selection: false},
-										contextmenu: {select_node: false},
-										core: {check_callback: true}
+										contextmenu: {select_node: false, items: customizedMenu},
+										dnd: {inside_pos: 'last', check_while_dragging: true},
+										types: {leaf: {icon: 'coordinator-icon coordinator-leaf'},
+												serial: {icon: 'coordinator-icon coordinator-serial'},
+												parallel: {icon: 'coordinator-icon coordinator-parallel'}},
+										core: {check_callback: function(operation, node, node_parent, node_position, more){
+												var inst = $.jstree.reference(node);
+												
+												if(operation == 'move_node' && !node_parent.parent && node_position != 2){
+													// only insert into root, neither before nor after
+													// position 2 means inside, 0 before, 1 after 
+													return false;
+												}
+
+												return true;
+											}}
 										})
 										.on('ready.jstree', function(){
-											jstreeInst.get_container().find('.jstree-leaf[jstree-checked="true"]').each(function(i, e){
-												jstreeInst.check_node(e);
-											});
+											var jstreeInst = $.jstree.reference(this);
+											// since prototype.js has polluted native JSON relevant methods, might as well do it here 
+											jstreeInst.get_container().find('[data-jstree]').each(function(i, e){
+												var node = jstreeInst.get_node(e, true);
+												var state = node.data().jstree;
+												jstreeInst.set_type(e, state.type);
+												if(node.hasClass('jstree-leaf') && state.checked){
+													jstreeInst.check_node(e);
+												}
+											})
 										})
-					var jstreeInst = $.jstree.reference('#execPlan');
-    								
-
+										.on('create_node.jstree', function(event, data){
+											var jstreeInst = $.jstree.reference(data.node);
+											jstreeInst.set_type(data.node, 'leaf');
+											if(jstreeInst.get_type(data.parent) === 'leaf'){
+												jstreeInst.set_type(data.parent, 'serial');
+											}
+										})
+										.on('paste.jstree', function(event, data){
+											var jstreeInst = data.instance;
+											for(var i=0; i<data.node.length; i++){
+												if(!jstreeInst.get_node(data.node[i].parent).children.length){
+													jstreeInst.set_type(data.node[i].parent, 'leaf');
+												}
+											}
+											
+											if(jstreeInst.get_type(data.parent) === 'leaf'){
+												jstreeInst.set_type(data.parent, 'serial');
+											}
+											jstreeInst.open_node(data.parent);
+										})
+										.on('move_node.jstree', function(event, data){
+											var jstreeInst = $.jstree.reference(data.node);
+											if(!jstreeInst.get_node(data.old_parent).children.length){
+												jstreeInst.set_type(data.old_parent, 'leaf');
+											}
+											if(jstreeInst.get_type(data.parent) === 'leaf'){
+												jstreeInst.set_type(data.parent, 'serial');
+											}
+											jstreeInst.open_node(data.parent);
+										})
+										.on('delete_node.jstree', function(event, data){
+											var jstreeInst = $.jstree.reference(data.node);
+											if(!jstreeInst.get_node(data.node.parent).children.length){
+												jstreeInst.set_type(data.node.parent, 'leaf');
+											}
+										})
+										.on("click.jstree", ".jstree-anchor",function (e) {
+											var jstreeInst = $.jstree.reference(e.currentTarget);
+											var node = jstreeInst.get_node(e.currentTarget);
+											var prevDisabled = node.state.disabled;
+											if (jstreeInst.is_disabled(node)){
+												// enable the node selection when it's disabled for contextmenu.enable to work
+												node.state.disabled = false;
+												jstreeInst.activate_node(e.currentTarget, e);
+											}
+											node.state.disabled = prevDisabled;
+										})
     				
     				function saveExecPlanJsonString(){
     					try{
-    					var rootNode = $('#execPlan').jstree(true).get_json()[0];
+    					var rootNode = $('#execPlan').jstree(true).get_json(null, {no_data: true})[0];
     					} catch(e){
     					}
 						// Don't use json.js JSON.stringify! 
