@@ -220,11 +220,22 @@
 											node.state.disabled = prevDisabled;
 										})
     				
+    				function optimized4NetworkTransmission(node){
+    					delete node.li_attr;
+    					delete node.a_attr;
+    					delete node.data;
+    					for(var i=0; i<node.children.length; i++){
+    						optimized4NetworkTransmission(node.children[i]);
+    					}
+    				}
     				function saveExecPlanJsonString(){
     					try{
     					var rootNode = $('#execPlan').jstree(true).get_json(null, {no_data: true})[0];
     					} catch(e){
     					}
+    					
+    					optimized4NetworkTransmission(rootNode);
+    					
 						// Don't use json.js JSON.stringify! 
 						// Here we align with Jenkins convention Prototype.js
 						// This Object.toJSON method is defined in Prototype.js within jenkins package
