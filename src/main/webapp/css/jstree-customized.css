@@ -16,3 +16,7 @@
 .jstree-default .coordinator-parallel {
 	background-image: url('../images/coordinator-parallel.ico');
 }
+
+.jstree-default .jstree-search {
+	color: #008b8b;
+}

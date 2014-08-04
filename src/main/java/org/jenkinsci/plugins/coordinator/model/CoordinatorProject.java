@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.coordinator.model;
 
 import hudson.Extension;
+import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.TopLevelItem;
 import hudson.model.Descriptor;
@@ -8,12 +9,15 @@ import hudson.model.Project;
 import hudson.tasks.Builder;
 import hudson.util.DescribableList;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import jenkins.model.Jenkins;
 import net.sf.json.JSON;
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import org.kohsuke.accmod.Restricted;
@@ -81,6 +85,20 @@ public class CoordinatorProject extends
 			}
 			return JSONObject.fromObject(notExist);
 			
+		}
+		
+		@SuppressWarnings("rawtypes")
+		public JSON doSearchProjectNames(@QueryParameter String q){
+			ArrayList<String> result = new ArrayList<String>();
+			List<TopLevelItem> items = Jenkins.getInstance().getAllItems(TopLevelItem.class);
+			for (TopLevelItem item : items) {
+				if (item.hasPermission(Item.READ)
+						&& !this.testInstance(item) // exclude the Coordinator Type
+						&& item.getFullName().toLowerCase().contains(q.toLowerCase())) {
+					result.add(item.getFullName());
+				}
+			}
+			return JSONArray.fromObject(result);
 		}
 	}
 
