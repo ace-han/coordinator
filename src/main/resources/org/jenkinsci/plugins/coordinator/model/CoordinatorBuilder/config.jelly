@@ -86,10 +86,7 @@
     				var searcherSticker = $("#searcherSticker"), searcherStickerOuterHeight=0,
     					coordinatorWrapper = $('#coordinatorWrapper'), coordinatorWrapperTop=0;
     				setTimeout(function(){
-    					coordinatorWrapperTop = coordinatorWrapper.offset().top;
-    					searcherSticker.width(searcherSticker.width());
-    					searcherStickerOuterHeight = searcherSticker.outerHeight();
-    					$(window).scroll();
+    					
     				}, 500);
 					
 										   
@@ -315,7 +312,11 @@
 												if(node.hasClass('jstree-leaf') && state.checked){
 													jstreeInst.check_node(e);
 												}
-											})
+											});
+											coordinatorWrapperTop = coordinatorWrapper.offset().top;
+					    					searcherSticker.width(searcherSticker.width());
+					    					searcherStickerOuterHeight = searcherSticker.outerHeight();
+					    					$(window).scroll();
 										})
 										.on('create_node.jstree', function(event, data){
 											var jstreeInst = data.instance;

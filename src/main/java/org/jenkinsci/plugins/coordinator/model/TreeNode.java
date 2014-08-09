@@ -139,5 +139,10 @@ public class TreeNode {
 	    //public String type; // it's weird that type in state doesnot change as ui changes
 	    
 	    public State(){}
-	} 
+	}
+	
+	public static TreeNode fromString(String jsonStr){
+		JSONObject jsonObject = JSONObject.fromObject(jsonStr, TreeNode.JSON_CONFIG);
+		return (TreeNode)JSONObject.toBean(jsonObject, TreeNode.JSON_CONFIG);
+	}
 }
