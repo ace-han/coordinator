@@ -80,7 +80,6 @@
 	<st:once>
     	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/jquery.js"></script>
     	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/jstree/jstree.js"></script>
-    	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/jstree-customized.js"></script>
     	<script type="text/javascript"><![CDATA[
     		(function jQueryNamespacing($){
     			$(function(){
