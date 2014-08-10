@@ -24,12 +24,13 @@ public class CoordinatorParameterDefinition extends ParameterDefinition {
 	
 	private static final long serialVersionUID = -6884384863181141230L;
 	
+	
 	public CoordinatorParameterDefinition() {
         super("executionPlan", "");
     }
     
     public ParameterValue createValue(StaplerRequest req, JSONObject jo){
-    	String jsonStr = jo.getString(getName());
+    	String jsonStr = jo.getString("value");
     	if(jsonStr == null){
     		return createValue(req);
     	} else {

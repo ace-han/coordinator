@@ -7,7 +7,7 @@ import hudson.model.Build;
 
 public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild> {
 
-	protected CoordinatorBuild(CoordinatorProject project) throws IOException {
+	public CoordinatorBuild(CoordinatorProject project) throws IOException {
 		super(project);
 	}
 

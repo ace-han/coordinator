@@ -1,28 +1,41 @@
 package org.jenkinsci.plugins.coordinator.model;
 
+import static javax.servlet.http.HttpServletResponse.SC_CREATED;
+import static javax.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
 import hudson.Extension;
+import hudson.model.BuildAuthorizationToken;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
+import hudson.model.ParameterDefinition;
+import hudson.model.ParametersDefinitionProperty;
 import hudson.model.TopLevelItem;
 import hudson.model.Descriptor;
 import hudson.model.Project;
+import hudson.model.queue.ScheduleResult;
 import hudson.tasks.Builder;
 import hudson.util.DescribableList;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.servlet.ServletException;
+
 import jenkins.model.Jenkins;
+import jenkins.util.TimeDuration;
 import net.sf.json.JSON;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
 
 @SuppressWarnings({ "unchecked" })
 public class CoordinatorProject extends
@@ -43,6 +56,45 @@ public class CoordinatorProject extends
 	}
 
 	@Override
+	public boolean isParameterized() {
+		// always true since we will take builder's executionPlan into account
+		return true;
+	}
+	
+	public void doBuild( StaplerRequest req, StaplerResponse rsp, @QueryParameter TimeDuration delay ) throws IOException, ServletException {
+        // hijack the parameter entry form.
+        if (!req.getMethod().equals("POST")) {
+            req.getView(this, "parameters-index.jelly").forward(req, rsp);
+            return;
+        }
+        
+        ParametersDefinitionProperty pdp = super.getProperty(ParametersDefinitionProperty.class);
+        boolean emptyPdp = (pdp == null);
+        // below will always go to pp._doBuild(xxx)
+        synchronized(this.properties){
+        	// some patch up
+        	if(emptyPdp){
+            	ArrayList<ParameterDefinition> pds = new ArrayList<ParameterDefinition>(2);
+            	pdp = new ParametersDefinitionProperty(pds);
+            	//pp.setOwner(this);
+            	super.properties.add(pdp);
+            	
+            }
+        	List<ParameterDefinition> pds = pdp.getParameterDefinitions();
+        	CoordinatorParameterDefinition cpd = new CoordinatorParameterDefinition();
+        	pds.add(cpd);
+        	
+        	super.doBuild(req, rsp, delay);
+        	
+        	// some clean up
+        	pds.remove(cpd);
+        	if(emptyPdp){
+        		 super.properties.remove(pdp);
+        	}
+        }
+    }
+
+	@Override
 	public DescribableList<Builder, Descriptor<Builder>> getBuildersList() {
 		DescribableList<Builder, Descriptor<Builder>> buildersList = super.getBuildersList();
 		if (buildersList.size() == 0){
@@ -53,6 +105,15 @@ public class CoordinatorProject extends
 		return buildersList;
 	}
 
+	public List<ParameterDefinition> getParameterDefinitions(){
+		// for a simple access to parametersDefinition in parameters-index.jelly
+		ParametersDefinitionProperty pdp = super.getProperty(ParametersDefinitionProperty.class);
+		if(pdp != null){
+			return pdp.getParameterDefinitions();
+		}
+		return null;
+	}
+	
 	@Restricted(NoExternalUse.class)
 	@Extension(ordinal = 1000)
 	public static class DescriptorImpl extends AbstractProjectDescriptor {
@@ -64,7 +125,7 @@ public class CoordinatorProject extends
 		public String getDisplayName() {
 			return "Coordinator Project";
 		}
-
+		
 		@Override
 		public CoordinatorProject newInstance(
 				@SuppressWarnings("rawtypes") ItemGroup parent, String name) {
@@ -101,6 +162,5 @@ public class CoordinatorProject extends
 			return JSONArray.fromObject(result);
 		}
 	}
-
 
 }
