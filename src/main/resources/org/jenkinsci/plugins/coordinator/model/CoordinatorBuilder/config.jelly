@@ -43,7 +43,7 @@
 		<div id="coordinatorWrapper">
         	<div id="execPlan">
         		<ul>
-					<st:include it="${it.executionPlan}" page="config.jelly"/>
+					<st:include it="${instance.executionPlan}" page="config.jelly"/>
         		</ul>
         	</div>
         	<div id="sideBar">
@@ -72,7 +72,9 @@
 		-->
 		<!-- since I could not find any hidden widget that does the databinding -->
 		<f:textbox checkMethod="post" style="display:none"  
-				value="${it.executionPlan.jsonString}"/>
+				value="${instance.executionPlan.jsonString}"/>
+		<input type="hidden" id="checkProjectExistenceUrl" value="${it.descriptor.descriptorFullUrl}/checkProjectExistence"/>
+		<input type="hidden" id="searchProjectNamesUrl" value="${it.descriptor.descriptorFullUrl}/searchProjectNames"/>
         
 	</f:entry>
 	<st:once>
@@ -85,10 +87,6 @@
     				// for a smooth flowing search input
     				var searcherSticker = $("#searcherSticker"), searcherStickerOuterHeight=0,
     					coordinatorWrapper = $('#coordinatorWrapper'), coordinatorWrapperTop=0;
-    				setTimeout(function(){
-    					
-    				}, 500);
-					
 										   
 					$(window).scroll(function() {
 						if($.data(document, 'isCalculating')){
@@ -112,7 +110,6 @@
 					
 					// for name searching
 					var sendingRequest, treeTimeoutRef;
-					// this `searchProjectNamesUrl` from org/jenkinsci/plugins/coordinator/model/CoordinatorProject/configure-entries.jelly
     				var searchProjectNamesUrl = $('#searchProjectNamesUrl').val();
 					$('#searcher').on('keyup', function(){
 							var searchInput = $(this);
@@ -176,7 +173,6 @@
 						
 					})
 					
-    				// this `checkProjectExistenceUrl` from org/jenkinsci/plugins/coordinator/model/CoordinatorProject/configure-entries.jelly
     				var checkProjectExistenceUrl = $('#checkProjectExistenceUrl').val();
     				var execPlanJsonStrInput = $('input[name="_.executionPlan"]');
     				$.post(checkProjectExistenceUrl, 
