@@ -24,9 +24,8 @@ public class CoordinatorParameterDefinition extends ParameterDefinition {
 	
 	private static final long serialVersionUID = -6884384863181141230L;
 	
-	
 	public CoordinatorParameterDefinition() {
-        super("executionPlan", "");
+        super(CoordinatorParameterValue.PARAM_KEY, "");
     }
     
     public ParameterValue createValue(StaplerRequest req, JSONObject jo){

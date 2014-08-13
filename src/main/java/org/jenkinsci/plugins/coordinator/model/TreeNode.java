@@ -12,6 +12,7 @@ import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
 public class TreeNode {
+	
 	private static final String[] REFLECTION_EXCLUDE_FIELDS = new String[] {"chidlren"};
 	static final JsonConfig JSON_CONFIG;
 	static final TreeNode EMPTY_ROOT;	// for every tree initialization
@@ -43,6 +44,8 @@ public class TreeNode {
 	private List<TreeNode> children = new ArrayList<TreeNode>();
 	
 	private State state = new State();
+	
+	private int buildNumber;
 
 	public String getId() {
 		return id;
@@ -97,11 +100,19 @@ public class TreeNode {
 	}
 	
 	public boolean shouldChildrenSerialRun(){
-		return this.type == "serial";
+		return "serial".equals(this.type);
 	}
 	
 	public boolean shouldChildrenParallelRun(){
-		return this.type == "parallel";
+		return "parallel".equals(this.type);
+	}
+	
+	public int getBuildNumber() {
+		return buildNumber;
+	}
+
+	public void setBuildNumber(int buildNumber) {
+		this.buildNumber = buildNumber;
 	}
 	
 /*	

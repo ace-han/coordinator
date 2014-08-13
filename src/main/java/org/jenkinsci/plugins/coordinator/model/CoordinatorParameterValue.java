@@ -10,6 +10,8 @@ import java.util.Locale;
 public class CoordinatorParameterValue extends ParameterValue {
 
 	private static final long serialVersionUID = -1278826177124697893L;
+	
+	public static final String PARAM_KEY = "executionPlan";
 
 	private TreeNode value;
 	
@@ -17,17 +19,14 @@ public class CoordinatorParameterValue extends ParameterValue {
 		return value;
 	}
 
-
 	public void setValue(TreeNode value) {
 		this.value = value;
 	}
-
 
 	public CoordinatorParameterValue(String name, String description, TreeNode value) {
 		super(name, description);
 		this.value = value;
 	}
-	
 	
     /**
      * Exposes the name/value as an environment variable.

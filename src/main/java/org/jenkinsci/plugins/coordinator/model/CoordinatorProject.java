@@ -1,17 +1,14 @@
 package org.jenkinsci.plugins.coordinator.model;
 
-import static javax.servlet.http.HttpServletResponse.SC_CREATED;
-import static javax.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
 import hudson.Extension;
-import hudson.model.BuildAuthorizationToken;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
+import hudson.model.TopLevelItem;
+import hudson.model.AbstractProject;
+import hudson.model.Descriptor;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParametersDefinitionProperty;
-import hudson.model.TopLevelItem;
-import hudson.model.Descriptor;
 import hudson.model.Project;
-import hudson.model.queue.ScheduleResult;
 import hudson.tasks.Builder;
 import hudson.util.DescribableList;
 
@@ -21,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.servlet.ServletException;
 
@@ -32,19 +30,53 @@ import net.sf.json.JSONObject;
 
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+
 
 @SuppressWarnings({ "unchecked" })
 public class CoordinatorProject extends
 		Project<CoordinatorProject, CoordinatorBuild> implements TopLevelItem {
 	
+	private transient List<Integer> rebuildVersions = new CopyOnWriteArrayList<Integer>();
+	
 	public CoordinatorProject(ItemGroup<?> parent, String name) {
 		super(parent, name);
 	}
 
+	@Override
+	public void onLoad(ItemGroup<? extends Item> parent, String name) throws IOException {
+		super.onLoad(parent, name);
+		// avoid null after jenkins server restart
+		rebuildVersions = new CopyOnWriteArrayList<Integer>();
+	}
+	
+	
+	protected synchronized CoordinatorBuild newBuild() throws IOException {
+		if (!rebuildVersions.isEmpty()) {
+			Integer rebuildVersion = rebuildVersions.remove(0);
+			CoordinatorBuild targetBuild = super.getBuildByNumber(rebuildVersion);
+			if (targetBuild == null) {
+				// only IOException would make it continue like fluent
+				throw new IOException("could not retrieve the specific Build by build #: " + rebuildVersion);
+			}
+			
+			targetBuild.addOldActions(targetBuild.getAllActions());
+			
+			// it will get set again in hudson.model.Executor
+			/*
+			 * for (Action action: workUnit.context.actions) {
+			 * 	((Actionable) executable).addAction(action);
+			 * }
+			 */
+			targetBuild.getActions().clear();
+			return targetBuild;
+		} else {
+			return super.newBuild();
+		}
+	}
+	
 	@Override
 	public DescriptorImpl getDescriptor() {
 		return (DescriptorImpl) Jenkins.getInstance().getDescriptorOrDie(getClass());
@@ -74,9 +106,16 @@ public class CoordinatorProject extends
         synchronized(this.properties){
         	// some patch up
         	if(emptyPdp){
-            	ArrayList<ParameterDefinition> pds = new ArrayList<ParameterDefinition>(2);
-            	pdp = new ParametersDefinitionProperty(pds);
-            	//pp.setOwner(this);
+        		final CoordinatorProject cowner = this;
+            	pdp = new ParametersDefinitionProperty(new ArrayList<ParameterDefinition>(2)){
+
+            		public void _doBuild(StaplerRequest req, StaplerResponse rsp, 
+            				@QueryParameter TimeDuration delay) throws IOException, ServletException {
+            			this.owner = cowner;
+            			super._doBuild(req, rsp, delay);
+            		}
+            		
+            	};
             	super.properties.add(pdp);
             	
             }
@@ -148,7 +187,6 @@ public class CoordinatorProject extends
 			
 		}
 		
-		@SuppressWarnings("rawtypes")
 		public JSON doSearchProjectNames(@QueryParameter String q){
 			ArrayList<String> result = new ArrayList<String>();
 			List<TopLevelItem> items = Jenkins.getInstance().getAllItems(TopLevelItem.class);

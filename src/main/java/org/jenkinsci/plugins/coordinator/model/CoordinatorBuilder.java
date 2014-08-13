@@ -1,10 +1,16 @@
 package org.jenkinsci.plugins.coordinator.model;
 
 import hudson.Extension;
+import hudson.Launcher;
+import hudson.model.BuildListener;
+import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
+
+import java.io.IOException;
+
 import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
 
@@ -39,11 +45,24 @@ public class CoordinatorBuilder extends Builder {
 		this.executionPlan = executionPlan;
 	}
 
+	@Override
+	public boolean perform(AbstractBuild<?, ?> build, Launcher launcher,
+			BuildListener listener) throws InterruptedException, IOException {
+		assert build instanceof CoordinatorBuild;
+		
+		CoordinatorBuild cb = (CoordinatorBuild) build;
+		
+		// TODO make this 10 configurable
+		PerformExecutor performExecutor = new PerformExecutor(cb, listener, 10);
+		return performExecutor.execute();
+	}
+	
 	@Extension
 	public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
 		
 		@Override
-		public boolean isApplicable(Class<? extends AbstractProject> jobType) {
+		public boolean isApplicable(@SuppressWarnings("rawtypes") 
+									Class<? extends AbstractProject> jobType) {
 			// Only available to CooradinatorProject
 			return CoordinatorProject.class.isAssignableFrom(jobType);
 		}
