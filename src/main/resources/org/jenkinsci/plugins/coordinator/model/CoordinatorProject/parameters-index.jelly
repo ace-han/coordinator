@@ -13,69 +13,7 @@
 		<l:main-panel>
 			<link rel="stylesheet" href="${rootURL}/plugin/coordinator/js/jstree/themes/default/style.min.css" />
 			<link rel="stylesheet" href="${rootURL}/plugin/coordinator/css/jstree-customized.css" />
-			<style type="text/css">
-				.clear {clear:both; font-size:1px; visibility:hidden;}
-				
-				/*ui-tabs css*/
-				.ui-tabs{
-					padding: 1em;
-				}
-				
-				.ui-tabs .ui-tabs-header{
-					margin: 0;
-					padding-left: 1em;
-					list-style: none;
-				}
-				
-				.ui-tabs .ui-tabs-tab{
-					background-color: #F0F0F0;
-					border: 1px solid #BBB;
-					padding: .5em;
-					border-top-left-radius: .5em;
-		    		border-top-right-radius: .5em;
-					border-bottom: none;
-					float: left;
-					margin: 0 .1em;
-				}
-				
-				.ui-tabs .ui-tabs-tab a{
-					color: #444;
-					text-decoration: none;
-				}
-				
-				.ui-tabs .ui-tabs-tab:hover{
-					background-color: #666;
-				}
-				
-				.ui-tabs .ui-tabs-tab.ui-tab-active{
-					background-color: #FFF;
-					padding: 1em;
-					margin-top: -1em;
-					border-bottom: .1em solid #FFF;
-					position: relative;
-					top: .1em;
-				}
-				
-				.ui-tabs .ui-tabs-content{
-					width:100%; 
-					border: 1px solid #BBB;
-					clear: both;
-				}
-				
-				.ui-tabs .ui-tabs-pane{
-					width:100%; 
-					display:none;
-				}
-				
-				.params-disabled, .params-disabled>option{
-					background-color: #EBEBE4;
-					color: black;
-				}
-				
-				.setting-input {
-					width: 95%;
-				}
-			</style>
+			<link rel="stylesheet" href="${rootURL}/plugin/coordinator/css/tabs.css" />
 		
 			<div class="behavior-loading">${%LOADING}</div>
 			<h1>${it.pronoun} ${it.displayName}</h1>
@@ -192,6 +130,7 @@
 			<st:once>
 		    	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/jquery.js"></script>
 		    	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/jstree/jstree.js"></script>
+		    	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/coordinator-utils.js"></script>
 		    	<script type="text/javascript"><![CDATA[
 		    		(function jQueryNamespacing($){
 		    			$(function(){
@@ -231,18 +170,10 @@
 												}
 											});
 										});
-										
-							function optimized4NetworkTransmission(node){
-		    					delete node.li_attr;
-		    					delete node.a_attr;
-		    					delete node.data;
-		    					for(var i=0; i<node.children.length; i++){
-		    						optimized4NetworkTransmission(node.children[i]);
-		    					}
-		    				}
 		    				
 							$('#bottom-sticker').on('click', '#buildTrigger', function(){
 								var rootNode = $('#execPlan').jstree(true).get_json(null, {no_data: true})[0];
+								// from coordinator-utils.js
 								optimized4NetworkTransmission(rootNode);
 								var jsonString = Object.toJSON(rootNode);
 								$('#execPlanJsonStrInput').val(jsonString);

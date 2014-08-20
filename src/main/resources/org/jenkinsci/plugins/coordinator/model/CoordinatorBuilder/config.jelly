@@ -80,6 +80,7 @@
 	<st:once>
     	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/jquery.js"></script>
     	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/jstree/jstree.js"></script>
+    	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/coordinator-utils.js"></script>
     	<script type="text/javascript"><![CDATA[
     		(function jQueryNamespacing($){
     			$(function(){
@@ -362,20 +363,12 @@
 											node.state.disabled = prevDisabled;
 										})
     				
-    				function optimized4NetworkTransmission(node){
-    					delete node.li_attr;
-    					delete node.a_attr;
-    					delete node.data;
-    					for(var i=0; i<node.children.length; i++){
-    						optimized4NetworkTransmission(node.children[i]);
-    					}
-    				}
     				function saveExecPlanJsonString(){
     					try{
     					var rootNode = $('#execPlan').jstree(true).get_json(null, {no_data: true})[0];
     					} catch(e){
     					}
-    					
+    					// from coordinator-utils.js
     					optimized4NetworkTransmission(rootNode);
     					
 						// Don't use json.js JSON.stringify! 
