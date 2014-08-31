@@ -1,0 +1,165 @@
+<!-- builder's config file -->
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" 
+		xmlns:st="jelly:stapler" 
+		xmlns:d="jelly:define"
+		xmlns:l="/lib/layout" 
+		xmlns:h="/lib/hudson" 
+		xmlns:f="/lib/form"
+		xmlns:p="/lib/hudson/project">
+	<div>
+		<link rel="stylesheet" href="${rootURL}/plugin/coordinator/js/jstree/themes/default/style.min.css" />
+		<link rel="stylesheet" href="${rootURL}/plugin/coordinator/css/jstree-customized.css" />
+		<link rel="stylesheet" href="${rootURL}/plugin/coordinator/css/tabs.css" />
+		
+		<j:set var="delay" value="${request.getParameter('delay')}" />
+		<!-- since we always set it.parameterized true in CoordinatorProject -->
+		<j:set var="parameterized" value="${!empty it.parent.parameterDefinitions}"/>
+			
+			
+		<div class="ui-tabs">
+			<div class="ui-tabs-header">
+				<j:choose>
+					<j:when test="${parameterized}">
+						<div class="ui-tabs-tab">
+							<a id="showParameterTrigger" href="#parameterArea">Parameters</a>
+						</div>
+						<div class="ui-tab-active ui-tabs-tab">
+							<a id="showBuildersTrigger" href="#builderArea">Build Profile</a>
+						</div>				
+					</j:when>
+					<j:otherwise>
+						<div class="ui-tab-active ui-tabs-tab">
+							<a id="showBuildersTrigger" href="#builderArea">Build Profile</a>
+						</div>
+					</j:otherwise>
+				</j:choose>
+			</div>
+			<div class="ui-tabs-content">
+				<div id="builderArea" class="ui-tabs-pane">
+					<!-- by going through the source code, its sequence is ensured to retrieved by the configure page -->
+					<j:forEach var="builder" items="${it.parent.builders}">
+						<div id="execPlan">
+			        		<ul>
+								<st:include it="${builder.executionPlan}" page="config.jelly"/>
+			        		</ul>
+			        	</div>
+						<div class="clear"></div>
+					</j:forEach>
+				</div>
+				<j:choose>
+					<j:when test="${parameterized}">
+						<div id="parameterArea" class="ui-tabs-pane">
+							<f:form method="post" action="build${empty(delay)?'':'?delay='+delay}"
+								name="parameters" tableClass="parameters">
+								<j:forEach var="parameterDefinition" items="${it.parameterDefinitions}">
+									<tbody>
+										<st:include it="${parameterDefinition}"
+									                page="${parameterDefinition.descriptor.valuePage}" optional="true"/>
+									</tbody>
+								</j:forEach>
+								<!-- !!! this section should come in as the last section for the submission parameter parsing align with backend !!! -->
+								<tbody style="display:none">
+									<f:entry title="executionPlan">
+										<div name="parameter">
+											<!-- this name's value should match the field in CoordinatorParameterDefinition.getName() -->
+											<input type="hidden" name="name" value="executionPlan" />
+											<!-- 
+												there 2 places for this input element remember to change both if any change
+												just search the word "execPlanJsonStrInput" 
+											-->
+											<input id="execPlanJsonStrInput" type="hidden" name="value" value=""/>
+										</div>
+									</f:entry>
+								</tbody>
+								<input type="hidden" name="statusCode" value="303" />
+								<input type="hidden" name="redirectTo" value="." />
+							</f:form>
+						</div>
+					</j:when>
+					<j:otherwise>
+						<f:form method="post" action="build${empty(delay)?'':'?delay='+delay}"
+								name="parameters" tableClass="parameters">
+								<tbody style="display:none">
+									<f:entry title="executionPlan">
+										<div name="parameter">
+											<!-- this name's value should match the field in CoordinatorParameterDefinition.getName() -->
+											<input type="hidden" name="name" value="executionPlan" />
+											<!-- 
+												there 2 places for this input element remember to change both if any change
+												just search the word "execPlanJsonStrInput" 
+											-->
+											<input id="execPlanJsonStrInput" type="hidden" name="value" value=""/>
+										</div>
+									</f:entry>
+								</tbody>
+							<input type="hidden" name="statusCode" value="303" />
+							<input type="hidden" name="redirectTo" value="." />	
+						</f:form>
+					</j:otherwise>
+				</j:choose>
+				
+			</div>
+		</div>
+		<div class="clear"></div>
+		
+		
+		<j:choose>
+			<j:when test="${it.parent.hasPermission(it.parent.BUILD)}">
+				<div id="bottom-sticker" >
+					<div class="bottom-sticker-inner">
+						<input id="buildTrigger" type="button" value="${%Build}" class="yui-button" />
+					</div>
+				</div>
+			</j:when>
+			<j:otherwise>
+				<div id="bottom-sticker" >
+					<div class="bottom-sticker-inner">
+						<input type="button" value="${%No Build Permission}" class="yui-button" 
+								disabled="disabled" title="missing build permission!!!"/>
+					</div>
+				</div>
+			</j:otherwise>
+		</j:choose>
+		
+		<st:once>
+	    	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/jquery.js"></script>
+	    	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/jstree/jstree.js"></script>
+	    	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/coordinator-utils.js"></script>
+	    	<script type="text/javascript"><![CDATA[
+	    		(function jQueryNamespacing($){
+	    			$(function(){
+	    				$('.ui-tabs').on('click', '.ui-tabs-tab', function(e){
+	    					e.preventDefault();	// just avoid appending #xxx to the url
+							var self = $(this);
+							var tabsContext = self.closest('.ui-tabs');
+							$('.ui-tab-active', tabsContext).removeClass('ui-tab-active');
+							var targetAnchor = self.addClass('ui-tab-active').find('a[href^="#"]').attr('href');
+							if(targetAnchor){
+								$('.ui-tabs-pane', tabsContext).hide();
+								$(targetAnchor, tabsContext).show();
+								// seems jQuery way doesnot work, will have to trigger it in hudson way
+								// it's written in hudson-behavior.js#fireEvent and hudson-behavior.js#adjustSticker
+								window.fireEvent(window, 'scroll');
+							}
+						});
+					
+						$('.ui-tab-active').click();
+						
+						// from coordinator-utils.js
+						jstreeTablization('execPlan', $);
+	    				
+						$('#bottom-sticker').on('click', '#buildTrigger', function(){
+							var rootNode = $('#execPlan').jstree(true).get_json(null, {no_data: true})[0];
+							// from coordinator-utils.js
+							optimized4NetworkTransmission(rootNode);
+							var jsonString = Object.toJSON(rootNode);
+							$('#execPlanJsonStrInput').val(jsonString);
+							$('form[name="parameters"]').submit();
+						})
+	    			});
+	    		})(jQuery.noConflict());
+	    	]]></script>
+	    </st:once>
+	</div>
+</j:jelly>
