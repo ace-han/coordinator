@@ -5,7 +5,7 @@ import hudson.model.BuildListener;
 import hudson.model.ItemGroup;
 import hudson.model.ParameterValue;
 import hudson.model.Queue.Executable;
-import hudson.model.Queue.Task;
+import hudson.model.Result;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Cause.UpstreamCause;
@@ -13,7 +13,6 @@ import hudson.model.CauseAction;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParametersAction;
 import hudson.model.ParametersDefinitionProperty;
-import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.queue.QueueTaskFuture;
 import hudson.model.queue.ScheduleResult;
@@ -189,7 +188,7 @@ public class PerformExecutor {
 				StringBuilder sb = new StringBuilder(100);
 				// we use relative path
 				sb.append("../../").append(jobName);
-				listener.getLogger().print("Atomic Project: ");
+				listener.getLogger().print("Atomic Job: ");
 				listener.hyperlink(sb.toString(), jobName);
 				sb.append('/').append(node.getBuildNumber()).append("/console");
 				listener.getLogger().print("  ");
@@ -208,12 +207,12 @@ public class PerformExecutor {
 	private AbstractProject<?, ?> prepareProxiedProject(final TreeNode node) {
 		AbstractProject<?, ?> atomicProject = (AbstractProject<?, ?>) Jenkins.getInstance().getItem(node.getText());
 		if(atomicProject == null){
-			formattedLog("Atomic Project: %s not found\n", node.getText());
+			formattedLog("Atomic Job: %s not found\n", node.getText());
 			executorPool.shutdown();
 			return null;
 		}
 		if(!atomicProject.isBuildable()){
-			formattedLog("Atomic Project: %s is either disabled or new job's configuration not saved[refer to hudson.model.Job#isHoldOffBuildUntilSave]\n", 
+			formattedLog("Atomic Job: %s is either disabled or new job's configuration not saved[refer to hudson.model.Job#isHoldOffBuildUntilSave]\n", 
 					node.getText());
 			executorPool.shutdown();
 			return null;
@@ -248,7 +247,7 @@ public class PerformExecutor {
 			if(defaultParameterValue == null){
 				// some ParameterDefinition's getDefaultParameterValue() returns a null
 				formattedLog(
-						"Atomic Project( %s )'s  ParameterDefinition, ( %s ), is not supported and its parameter value won't get activated.\n",
+						"Atomic Job( %s )'s  ParameterDefinition, ( %s ), is not supported and its parameter value won't get activated.\n",
 						atomicProject.getName(), pd.getClass().getSimpleName());
 				continue;
 			}
@@ -379,7 +378,7 @@ public class PerformExecutor {
 			AbstractProject<?, ?> atomicProject = prepareProxiedProject(node);
 			if(atomicProject == null) return;
 			List<Action> actions = prepareJobActions(atomicProject);
-			formattedLog("Atomic Project ( %s ) Triggered\n", jobName);
+			formattedLog("Atomic Job ( %s ) Triggered\n", jobName);
 			QueueTaskFuture<Executable> future = getRunningFuture(node, atomicProject, actions);
 			AbstractBuild<?, ?> targetBuild;
 			if(future == null) return;
@@ -388,11 +387,11 @@ public class PerformExecutor {
 			try {
 				future.get(time, TimeUnit.HOURS);
 			} catch (TimeoutException e) {
-				formattedLog("Atomic Project(%1$s-%2$s) Time out, waited for %3$d %s, Exception:\n%4$s\n", 
+				formattedLog("Atomic Job(%1$s-%2$s) Time out, waited for %3$d %s, Exception:\n%4$s\n", 
 						node.getId(), jobName, time, TimeUnit.HOURS, e);
 				PerformExecutor.this.executorPool.shutdown();
 			} catch (Exception e) {
-				formattedLog("Atomic Project(%1$s-%2$s#%3$s) failed, Exception:\n%4$s\n",
+				formattedLog("Atomic Job(%1$s-%2$s#%3$s) failed, Exception:\n%4$s\n",
 						node.getId(), jobName, 
 						node.getBuildNumber(),	// since this build# got filled in proxiedProject#newBuild
 						e);
@@ -422,7 +421,7 @@ public class PerformExecutor {
 			while(rescheduleCount ++ < 3){
 				ScheduleResult result = Jenkins.getInstance().getQueue().schedule2(atomicProject, 0, actions);
 				if(result.isRefused()){
-					formattedLog("Jenkins refused to add Atomic Project ( %s ), considered as a failure, aborting entire coordinator job\n", 
+					formattedLog("Jenkins refused to add Atomic Job ( %s ), considered as a failure, aborting entire coordinator job\n", 
 								node.getText());
 					// In this case, I take it as sth. wrong in Jenkins, a force shutdown to check it out
 					shutdownQuietly();

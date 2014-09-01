@@ -1,0 +1,54 @@
+/* jsTree tablized style */
+
+
+.jstree-default .jstree-anchor {
+	line-height: 32px;
+	height: 32px;
+}
+
+.jstree-wholerow-ul .jstree-wholerow {
+	cursor: auto;
+	height: 32px;
+	border-top: 1px solid #bbb;
+}
+
+.jstree-parent-node-text {
+	font-weight:bold;
+	color:gray !important;
+	cursor: text !important;
+}
+
+.jstree-table-header-cont {
+	position: relative;
+	background-color: #f0f0f0;
+	padding: 4px;
+	font-weight: bold;
+	height: 24px;
+	line-height: 24px;
+	
+}
+
+.jstree-table-header, .jstree-table-col {
+	float: right;
+	padding: 0 1em;
+}
+
+.jstree-table-row-odd {
+	background-color: #f0f0f0;
+}
+
+.jstree-default .jobStatus {
+	width: 16%;
+}
+
+.jstree-default .lastDuration {
+	width: 10%;
+}
+
+.jstree-default .lastLaunch {
+	width: 10%;
+}
+
+.jstree-default .buildNum {
+	width: 10%;
+}

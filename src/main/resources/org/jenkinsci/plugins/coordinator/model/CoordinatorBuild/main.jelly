@@ -10,6 +10,7 @@
 	<div>
 		<link rel="stylesheet" href="${rootURL}/plugin/coordinator/js/jstree/themes/default/style.min.css" />
 		<link rel="stylesheet" href="${rootURL}/plugin/coordinator/css/jstree-customized.css" />
+		<link rel="stylesheet" href="${rootURL}/plugin/coordinator/css/jstree-tablized.css" />
 		<link rel="stylesheet" href="${rootURL}/plugin/coordinator/css/tabs.css" />
 		
 		<j:set var="delay" value="${request.getParameter('delay')}" />
