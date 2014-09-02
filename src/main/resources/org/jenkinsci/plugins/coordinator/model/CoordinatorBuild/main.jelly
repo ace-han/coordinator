@@ -141,7 +141,7 @@
 								$(targetAnchor, tabsContext).show();
 								// seems jQuery way doesnot work, will have to trigger it in hudson way
 								// it's written in hudson-behavior.js#fireEvent and hudson-behavior.js#adjustSticker
-								window.fireEvent(window, 'scroll');
+								window.fireEvent(document.getElementsByTagName('body')[0], 'scroll');
 							}
 						});
 					

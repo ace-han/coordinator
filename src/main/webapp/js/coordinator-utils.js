@@ -16,12 +16,12 @@ function jstreeTablization(treeId, $){
 	if(!$){
 		$ = jQuery;
 	}
-	$(treeId).jstree({plugins: ['checkbox', 'types', 'wholerow'],
+	$(treeId).jstree({plugins: ['checkbox', 'types'],
 		// this combination with tie_selection set false is what ui expected
 		checkbox: {/*keep_selected_style: false, */whole_node: false, tie_selection: false},
 		types: {leaf: {icon: 'coordinator-icon coordinator-leaf'},
 				serial: {icon: 'coordinator-icon coordinator-serial'},
-				parallel: {icon: 'coordinator-icon coordinator-parallel'}},
+				parallel: {icon: 'coordinator-icon coordinator-parallel'}}
 		})
 		.on('ready.jstree', function(){
 			var jstreeInst = $.jstree.reference(this);
@@ -33,17 +33,21 @@ function jstreeTablization(treeId, $){
 			              	'<div class="jstree-table-col buildNum">#</div>',
 			              	'<div class="clear"></div>'];
 			//var maxOffsetRight = 0;
+			container.children('.jstree-container-ul').addClass('jstree-wholerow-container jstree-no-dots')
 			container.find('[data-jstree]').each(function(i, e){
 				var node = jstreeInst.get_node(e, true);
 				var state = node.data().jstree;
 				var anchor = node.children('a.jstree-anchor');//, offsetRight;
 				
 				jstreeInst.set_type(e, state.type);
+				node.prepend('<div class="jstree-wholerow ' 
+						+ (i%2 === 1? 'jstree-table-row-odd': 'jstree-table-row-even') 
+						+'"></div>')
 				if(jstreeInst.is_leaf(e)){
 					if(state.checked){
 						jstreeInst.check_node(e);
 					}		
-					node.find('.jstree-wholerow').html(cols.join(''));
+					node.children('.jstree-wholerow').html(cols.join(''));
 					/** 
 					 * we will consider mobile first design in the future
 					 * just keep rolling out this plugin first
@@ -56,10 +60,6 @@ function jstreeTablization(treeId, $){
 				} else if (jstreeInst.is_parent(e)) {
 					anchor.addClass('jstree-parent-node-text');
 				}
-				node.children('.jstree-wholerow')
-					.addClass(i%2 === 1? 'jstree-table-row-odd': 'jstree-table-row-even')
-					.removeAttr('unselectable');
-				
 			})
 			// patch up anti wholerow selection
 			container.find('.jstree-wholerow-clicked').removeClass('jstree-wholerow-clicked');
@@ -73,10 +73,5 @@ function jstreeTablization(treeId, $){
 			              	'<div class="clear"></div>',
 			              '</div>'];
 			container.prepend(headers.join(''))
-		})
-		.on('changed.jstree', function(e, data){
-			// patch up anti wholerow selection
-			var jstreeInst = $.jstree.reference(this);
-			jstreeInst.get_container().find('.jstree-wholerow-clicked').removeClass('jstree-wholerow-clicked');
 		});
 }

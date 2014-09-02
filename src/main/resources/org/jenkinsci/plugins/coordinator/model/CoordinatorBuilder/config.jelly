@@ -184,7 +184,7 @@
 
     					{idNameMap: Object.toJSON({foo:'bar'})})
     					.done(function( data, textStatus, jqXHR ) {
-    						console.info(data);
+    						//console.info(data);
     					})
     					.fail(function( jqXHR, textStatus, errorThrown) {
     						alert('Jenkins server encountered problems. Please check relevant server log.');
@@ -199,7 +199,7 @@
     				$.vakata.storage.get = function(key){
     					var result = originVakataGet(key);
     					result = $.parseJSON(result);
-    					console.dir(result);
+    					//console.dir(result);
     					return result;
     				}
     				state plugin is not what we expected, still not get auto-check feature ... */

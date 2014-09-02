@@ -1,15 +1,37 @@
 /* jsTree tablized style */
 
+.jstree-default .jstree-ocl {
+	visibility: hidden;
+}
+
+.jstree-default .jstree-icon:empty {
+	width: 24px;
+	height: 32px !important;
+	line-height: 32px !important;
+}
 
 .jstree-default .jstree-anchor {
 	line-height: 32px;
 	height: 32px;
+	position: relative;
 }
 
-.jstree-wholerow-ul .jstree-wholerow {
+.jstree-default .jstree-wholerow {
 	cursor: auto;
 	height: 32px;
 	border-top: 1px solid #bbb;
+	width: 100%;
+	position: absolute;
+	left: 0;
+}
+.jstree-default .jstree-wholerow:hover {
+	background-color: #e7f4f9;
+}
+
+.jstree-default .jstree-clicked, .jstree-default .jstree-hovered {
+	background: 0 0;
+	box-shadow: none;
+	border-radius: 0;
 }
 
 .jstree-parent-node-text {
@@ -20,7 +42,6 @@
 
 .jstree-table-header-cont {
 	position: relative;
-	background-color: #f0f0f0;
 	padding: 4px;
 	font-weight: bold;
 	height: 24px;
@@ -33,7 +54,7 @@
 	padding: 0 1em;
 }
 
-.jstree-table-row-odd {
+.jstree-table-row-even {
 	background-color: #f0f0f0;
 }
 
@@ -51,4 +72,10 @@
 
 .jstree-default .buildNum {
 	width: 10%;
+}
+
+.jstree-wholerow-container {
+	position: relative;
+	display: inline-block;
+	min-width: 100%;
 }
