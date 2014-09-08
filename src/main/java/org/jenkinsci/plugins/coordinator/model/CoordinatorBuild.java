@@ -10,9 +10,9 @@ import hudson.model.CauseAction;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.SimpleTimeZone;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -20,10 +20,12 @@ import javax.servlet.ServletException;
 
 import jenkins.model.Jenkins;
 import net.sf.json.JSON;
-import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
 
-import org.apache.commons.lang.time.FastDateFormat;
+import org.apache.commons.jelly.JellyContext;
 import org.kohsuke.stapler.HttpResponse;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.WebApp;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild> {
@@ -34,8 +36,8 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 	
 	private TreeNode originalExecutionPlan;
 	
-	public static final FastDateFormat DATETIME_FORMATTER = FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss Z");
-
+	private transient Map<String, Integer> tableRowIndexMap;
+	
 	/*package*/ TreeNode getOriginalExecutionPlan() {
 		return originalExecutionPlan;
 	}
@@ -95,65 +97,61 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 	}
 	
 	public AtomicBuildInfo getExecutionPlanInfo(){
-		return prepareAtomicBuildInfo(new ArrayList<AtomicBuildInfo>(), this.originalExecutionPlan, false);
+		if(this.tableRowIndexMap == null || this.tableRowIndexMap.isEmpty()){
+			this.tableRowIndexMap = new HashMap<String, Integer>();
+			prepareTableRowIndexMap(this.originalExecutionPlan);
+		}
+		return prepareAtomicBuildInfo(this.originalExecutionPlan, false);
 	}
 	
-	public JSON doQueryActiveAtomicBuildStatus() {
+	protected void prepareTableRowIndexMap(TreeNode node) {
+		this.tableRowIndexMap.put(node.getId(), tableRowIndexMap.size());
+		for(TreeNode child: node.getChildren()){
+			prepareTableRowIndexMap(child);
+		}
+	}
+
+	public JSON doQueryActiveAtomicBuildStatus(StaplerRequest req) {
 		Set<Entry<String, AbstractBuild<?, ?>>> entrySet = this.performExecutor.getActiveBuildMap().entrySet();
-		ArrayList<AtomicBuildInfo> result = new ArrayList<AtomicBuildInfo>(entrySet.size()); 
+		Map<String, String> result = new HashMap<String, String>(entrySet.size()*2 + 3); 
 		for(Map.Entry<String, AbstractBuild<?, ?>> entry: entrySet){
 			AbstractBuild<?, ?> build = entry.getValue();
-			TreeNode node = new TreeNode();
-			node.setId(entry.getKey());
-			node.setText(build.getParent().getName());
-			node.setBuildNumber(build.getNumber());
-			AtomicBuildInfo abi = prepareBuildInfo(node);
-			result.add(abi);
+			AtomicBuildInfo abi = new AtomicBuildInfo();
+			abi.build = build;
+			abi.tableRowIndex = this.tableRowIndexMap.get(entry.getKey());
+			result.put(entry.getKey(), getBuildInfoScriptAsString(abi));
 		}
-		return JSONArray.fromObject(result, TreeNode.JSON_CONFIG);
+		return JSONObject.fromObject(result);
 	}
 	
-	protected AtomicBuildInfo prepareAtomicBuildInfo(List<AtomicBuildInfo> list, TreeNode node, boolean simpleMode){
+	protected String getBuildInfoScriptAsString(AtomicBuildInfo abi) {
+//		JellyContext context = new JellyContext();
+//        // let Jelly see the whole classes
+//        context.setClassLoader(WebApp.getCurrent().getClassLoader());
+//        context.setVariable("it", abi);
+//        context.runScript(uri, output)
+		return "";
+	}
+
+	protected AtomicBuildInfo prepareAtomicBuildInfo(TreeNode node, boolean simpleMode){
 		if(simpleMode && !node.getState().checked){
 			return null; // save the time
 		}
-		AtomicBuildInfo abi;
+		AtomicBuildInfo abi = new AtomicBuildInfo();
+		abi.treeNode = node;
+		abi.tableRowIndex = this.tableRowIndexMap.get(node.getId());
 		List<TreeNode> children = node.getChildren();
 		if(children.isEmpty()){
-			abi = prepareBuildInfo(node);
-		} else {
-			abi = new AtomicBuildInfo();
-		}
-		abi.treeNode = node;
-		list.add(abi);
-		abi.tableRowIndex = list.size() - 1;
+			abi.build = retrieveTargetBuild(node.getText(), node.getBuildNumber());
+		} 
 		abi.children = new ArrayList<AtomicBuildInfo>(children.size());
 		for(TreeNode child: children){
-			AtomicBuildInfo abiChild = prepareAtomicBuildInfo(list, child, simpleMode);
+			AtomicBuildInfo abiChild = prepareAtomicBuildInfo(child, simpleMode);
 			if(abiChild != null){
 				abi.children.add(abiChild);
 			}
 		}
 		return abi;
-	}
-
-	protected AtomicBuildInfo prepareBuildInfo(TreeNode node) {
-		AtomicBuildInfo abi = new AtomicBuildInfo();
-		AbstractBuild<?, ?> targetBuild = retrieveTargetBuild(node.getText(), node.getBuildNumber());
-		if(targetBuild != null){
-			abi.launchTime = DATETIME_FORMATTER.format(targetBuild.getTime());
-			abi.duration = targetBuild.getDurationString();
-			abi.statusHtml = prepareStatusHtml(targetBuild);
-		} else {
-			abi.launchTime = abi.duration = "N/A";
-			abi.statusHtml = "<span title=\"This build might be already discarded\" style=\"color:red;\">Unretrievable</span>";
-		}
-		return abi;
-	}
-	
-	
-	protected String prepareStatusHtml(AbstractBuild<?, ?> targetBuild) {
-		return "&nbsp;";
 	}
 
 	private AbstractBuild<?, ?> retrieveTargetBuild(String projectName,
@@ -171,12 +169,9 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 	 *
 	 */
 	public static class AtomicBuildInfo {
-		public String launchTime;
-		public String duration;
-		public String statusHtml;
-
 		public TreeNode treeNode;
 		public int tableRowIndex;
+		public AbstractBuild<?, ?> build;
 		
 		public List<AtomicBuildInfo> children;
 	}

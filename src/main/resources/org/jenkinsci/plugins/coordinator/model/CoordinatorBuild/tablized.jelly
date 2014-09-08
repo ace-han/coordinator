@@ -10,39 +10,14 @@
 	<j:set var="node" value="${it.treeNode}"/>
 	<li data-jstree='{"opened": ${node.state.opened}, "selected": ${node.state.selected}, "disabled":${node.state.disabled}, "checked": ${node.state.checked}, "type": "${node.type}"}'
 		id="${node.id}">
-		<j:choose>
-			<j:when test="${it.tableRowIndex %2 == 0}">
-				<j:set var="tableRowClass" value="jstree-table-row jstree-table-row-even"/>
-			</j:when>
-			<j:otherwise>
-				<j:set var="tableRowClass" value="jstree-table-row jstree-table-row-odd"/>
-			</j:otherwise>
-		</j:choose>
+
+		<st:include page="tableRow.jelly" class="org.jenkinsci.plugins.coordinator.model.CoordinatorBuild" />
 		<j:choose>
 			<j:when test="${empty node.children}">
-				<div class="jstree-wholerow ${tableRowClass}">
-					<div class="jstree-table-col jobStatus"><j:out value="${it.statusHtml}"/></div>
-					<div class="jstree-table-col lastDuration">${it.duration}</div>
-					<div class="jstree-table-col lastLaunch">${it.launchTime}</div>
-					<div class="jstree-table-col buildNumber">
-						<j:choose>
-							<j:when test="${node.buildNumber != 0}">
-								<a href="${rootURL}/job/${node.text}/${node.buildNumber}/" class="model-link buildNumberLink">${node.buildNumber}</a>
-							</j:when>
-							<j:otherwise>
-								N/A
-							</j:otherwise>
-						</j:choose>
-						
-					</div>
-					<div class="clear"></div>
-				</div>
 				<a class="model-link" href="${rootURL}/job/${node.text}/">${node.text}</a>
 			</j:when>
 			<j:otherwise>
-				<!-- to avoid jstree include this .jstree-table-row into generated <a/> -->
-				<div class="jstree-wholerow ${tableRowClass}"></div>
-				<a >${node.text}</a>
+				<a>${node.text}</a>
 			</j:otherwise>
 		</j:choose>
 		<j:forEach var="node" items="${it.children}">

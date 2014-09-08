@@ -70,15 +70,7 @@ public class TreeNode {
 	public void setType(String type) {
 		this.type = type;
 	}
-	
-	public TreeNode getParent() {
-		return parent;
-	}
 
-	public void setParent(TreeNode parent) {
-		this.parent = parent;
-	}
-	
 	public List<TreeNode> getChildren() {
 		return this.children;
 	}
@@ -123,7 +115,16 @@ public class TreeNode {
 	public boolean shouldChildrenParallelRun(){
 		return this.state.type == "parallel";
 	}
-*/	
+*/
+
+	public TreeNode getParent() {
+		return parent;
+	}
+
+	public void setParent(TreeNode parent) {
+		this.parent = parent;
+	}
+
 	public String toString() {
 		return ToStringBuilder.reflectionToString(this);
 	}

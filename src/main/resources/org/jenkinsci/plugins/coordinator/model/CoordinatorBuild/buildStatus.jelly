@@ -1,0 +1,30 @@
+
+<!-- displays a caption for build/externalRun. -->
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" 
+	xmlns:st="jelly:stapler" 
+	xmlns:d="jelly:define"
+	xmlns:l="/lib/layout" 
+	xmlns:t="/lib/hudson" 
+	xmlns:f="/lib/form">
+	<l:ajax>
+		<j:if test="${it.building}">
+			<div class="building" style="float:right">
+				<table class="middle-align">
+					<tr>
+						<td>
+							<t:buildProgressBar build="${it}" />
+						</td>
+						<td>
+							<j:if test="${it.parent.hasAbortPermission()}">
+								<l:stopButton href="${it.url + '/stop'}" alt="[cancel]"/>
+							</j:if>
+						</td>
+					</tr>
+				</table>
+			</div>
+		</j:if>
+		<img src="${imagesURL}/24x24/${it.buildStatusUrl}"
+			alt="${it.iconColor.description}" tooltip="${it.iconColor.description}" />
+	</l:ajax>
+</j:jelly>
