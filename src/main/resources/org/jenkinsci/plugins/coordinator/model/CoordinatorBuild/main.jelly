@@ -38,15 +38,14 @@
 			</div>
 			<div class="ui-tabs-content">
 				<div id="builderArea" class="ui-tabs-pane">
-					<!-- by going through the source code, its sequence is ensured to retrieved by the configure page -->
-					<j:forEach var="builder" items="${it.parent.builders}">
 						<div id="execPlan">
 			        		<ul>
-								<st:include it="${builder.executionPlan}" page="config.jelly"/>
+								<st:include it="${it.executionPlanInfo}" page="tablized.jelly"
+									class="org.jenkinsci.plugins.coordinator.model.CoordinatorBuild" />
 			        		</ul>
 			        	</div>
 						<div class="clear"></div>
-					</j:forEach>
+					
 				</div>
 				<j:choose>
 					<j:when test="${parameterized}">

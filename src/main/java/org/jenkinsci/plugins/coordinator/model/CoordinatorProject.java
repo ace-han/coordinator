@@ -73,7 +73,9 @@ public class CoordinatorProject extends
 			targetBuild.getActions().clear();
 			return targetBuild;
 		} else {
-			return super.newBuild();
+			CoordinatorBuild cb = super.newBuild();
+			cb.setOriginalExecutionPlan(this.getCoordinatorBuilder().getExecutionPlan());
+			return cb;
 		}
 	}
 	
@@ -102,7 +104,7 @@ public class CoordinatorProject extends
         
         ParametersDefinitionProperty pdp = super.getProperty(ParametersDefinitionProperty.class);
         boolean emptyPdp = (pdp == null);
-        // below will always go to pp._doBuild(xxx)
+        // below will always go to pp._doBuild(xxx), should be quick enough
         synchronized(this.properties){
         	// some patch up
         	if(emptyPdp){
@@ -133,6 +135,10 @@ public class CoordinatorProject extends
         }
     }
 
+	public CoordinatorBuilder getCoordinatorBuilder() {
+		return (CoordinatorBuilder) getBuilders().get(0);
+	}
+	
 	@Override
 	public DescribableList<Builder, Descriptor<Builder>> getBuildersList() {
 		DescribableList<Builder, Descriptor<Builder>> buildersList = super.getBuildersList();

@@ -46,7 +46,7 @@ public class TreeNode {
 	private State state = new State();
 	
 	private int buildNumber;
-
+	
 	public String getId() {
 		return id;
 	}
@@ -155,5 +155,19 @@ public class TreeNode {
 	public static TreeNode fromString(String jsonStr){
 		JSONObject jsonObject = JSONObject.fromObject(jsonStr, TreeNode.JSON_CONFIG);
 		return (TreeNode)JSONObject.toBean(jsonObject, TreeNode.JSON_CONFIG);
+	}
+
+	/**
+	 * Assumption is that, left and right is identical in structure
+	 * This function merge from right to left
+	 * @param left
+	 * @param right
+	 */
+	public static void mergeCheckedStatus(TreeNode left, TreeNode right) {
+		left.state.checked = right.state.checked;
+		for(int i=0; i<left.children.size(); i++){
+			mergeCheckedStatus(left.children.get(i), right.children.get(i));
+		}
+		
 	}
 }

@@ -1,8 +1,9 @@
 /* jsTree tablized style */
 
-.jstree-default .jstree-ocl {
-	visibility: hidden;
-}
+.jstree-default>.jstree-no-dots .jstree-closed>.jstree-ocl, 
+.jstree-default>.jstree-no-dots .jstree-open>.jstree-ocl {
+	position: relative;
+} 
 
 .jstree-default .jstree-icon:empty {
 	width: 24px;
@@ -67,11 +68,11 @@
 }
 
 .jstree-default .lastLaunch {
-	width: 10%;
+	width: 16%;
 }
 
-.jstree-default .buildNum {
-	width: 10%;
+.jstree-default .buildNumber {
+	width: 8%;
 }
 
 .jstree-wholerow-container {

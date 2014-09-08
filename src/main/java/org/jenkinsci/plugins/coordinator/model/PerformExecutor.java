@@ -61,6 +61,10 @@ public class PerformExecutor {
 	private ConcurrentHashMap<String, AbstractBuild<?, ?>> activeBuildMap
 								= new ConcurrentHashMap<String, AbstractBuild<?, ?>>();;
 	
+	protected ConcurrentHashMap<String, AbstractBuild<?, ?>> getActiveBuildMap() {
+		return activeBuildMap;
+	}
+
 	private CoordinatorBuild coordinatorBuild;
 	
 	private BuildListener listener;
@@ -82,7 +86,8 @@ public class PerformExecutor {
 	
 	
 	public boolean execute(){
-		kickOffBuild(getExecutionPlanRootNode(this.coordinatorBuild));
+		prepareExecutionPlan();
+		kickOffBuild(this.coordinatorBuild.getOriginalExecutionPlan());
 		while(!parentChildrenMap.isEmpty()){
 			try {
 				Thread.sleep(5000);
@@ -108,13 +113,16 @@ public class PerformExecutor {
 		}
 	}
 	
-	private TreeNode getExecutionPlanRootNode(CoordinatorBuild cb) {
-		CoordinatorParameterValue parameter = (CoordinatorParameterValue)cb.getAction(ParametersAction.class)
+	private void prepareExecutionPlan() {
+		CoordinatorParameterValue parameter = (CoordinatorParameterValue)this.coordinatorBuild.getAction(ParametersAction.class)
 				.getParameter(CoordinatorParameterValue.PARAM_KEY);
-		return parameter.getValue();
+		TreeNode.mergeCheckedStatus(this.coordinatorBuild.getOriginalExecutionPlan(), parameter.getValue());
 	}
 	
-	/*package*/ void kickOffBuild(final TreeNode node){
+	
+
+
+	/*package*/ void kickOffBuild(TreeNode node){
 		State state = node.getState();
 		if(executorPool.isShutdown()
 				|| state.disabled 
