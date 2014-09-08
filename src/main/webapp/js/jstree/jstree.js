@@ -13,7 +13,7 @@
 }(function ($, undefined) {
 	"use strict";
 /*!
- * jsTree 3.0.2
+ * jsTree 3.0.3
  * http://jstree.com/
  *
  * Copyright (c) 2014 Ivan Bozhanov (http://vakata.com)
@@ -67,7 +67,7 @@
 		 * specifies the jstree version in use
 		 * @name $.jstree.version
 		 */
-		version : '3.0.2',
+		version : '3.0.3',
 		/**
 		 * holds all the default options used when creating new instances
 		 * @name $.jstree.defaults
@@ -108,6 +108,14 @@
 		});
 		tmp.init(el, options);
 		return tmp;
+	};
+	/**
+	 * remove all traces of jstree from the DOM and destroy all instances
+	 * @name $.jstree.destroy()
+	 */
+	$.jstree.destroy = function () {
+		$('.jstree:jstree').jstree('destroy');
+		$(document).off('.jstree');
 	};
 	/**
 	 * the jstree class constructor, used only internally
@@ -988,7 +996,7 @@
 		 * loads a node (fetches its children using the `core.data` setting). Multiple nodes can be passed to by using an array.
 		 * @name load_node(obj [, callback])
 		 * @param  {mixed} obj
-		 * @param  {function} callback a function to be executed once loading is conplete, the function is executed in the instance's scope and receives two arguments - the node and a boolean status
+		 * @param  {function} callback a function to be executed once loading is complete, the function is executed in the instance's scope and receives two arguments - the node and a boolean status
 		 * @return {Boolean}
 		 * @trigger load_node.jstree
 		 */
@@ -1238,9 +1246,10 @@
 		 * @name _append_json_data(obj, data)
 		 * @param  {mixed} obj the node to append to
 		 * @param  {String} data the JSON object to parse and append
+		 * @param  {Boolean} force_processing internal param - do not set
 		 * @trigger model.jstree, changed.jstree
 		 */
-		_append_json_data : function (dom, data, cb) {
+		_append_json_data : function (dom, data, cb, force_processing) {
 			dom = this.get_node(dom);
 			dom.children = [];
 			dom.children_d = [];
@@ -1576,17 +1585,29 @@
 					w = new window.Worker(this._wrk);
 					w.onmessage = $.proxy(function (e) {
 						rslt.call(this, e.data, true);
-						this._data.core.working = false;
 						if(this._data.core.worker_queue.length) {
 							this._append_json_data.apply(this, this._data.core.worker_queue.shift());
 						}
+						else {
+							this._data.core.working = false;
+						}
 					}, this);
-					if(!this._data.core.working) {
+					if(!this._data.core.working || force_processing) {
 						this._data.core.working = true;
-						w.postMessage(args);
+						if(!args.par) {
+							if(this._data.core.worker_queue.length) {
+								this._append_json_data.apply(this, this._data.core.worker_queue.shift());
+							}
+							else {
+								this._data.core.working = false;
+							}
+						}
+						else {
+							w.postMessage(args);
+						}
 					}
 					else {
-						this._data.core.worker_queue.push([dom, data, cb]);
+						this._data.core.worker_queue.push([dom, data, cb, true]);
 					}
 				}
 				catch(e) {
@@ -2743,7 +2764,7 @@
 		 * @return {Array}
 		 */
 		get_selected : function (full) {
-			return full ? $.map(this._data.core.selected, $.proxy(function (i) { return this.get_node(i); }, this)) : this._data.core.selected;
+			return full ? $.map(this._data.core.selected, $.proxy(function (i) { return this.get_node(i); }, this)) : this._data.core.selected.slice();
 		},
 		/**
 		 * get an array of all top level selected nodes (ignoring children of selected nodes)
@@ -2941,11 +2962,12 @@
 		 * refreshes the tree - all nodes are reloaded with calls to `load_node`.
 		 * @name refresh()
 		 * @param {Boolean} skip_loading an option to skip showing the loading indicator
-		 * @param {Boolean} forget_state if set to `true` state will not be reapplied
+		 * @param {Mixed} forget_state if set to `true` state will not be reapplied, if set to a function (receiving the current state as argument) the result of that function will be used as state
 		 * @trigger refresh.jstree
 		 */
 		refresh : function (skip_loading, forget_state) {
-			this._data.core.state = !forget_state ? this.get_state() : {};
+			this._data.core.state = forget_state === true ? {} : this.get_state();
+			if(forget_state && $.isFunction(forget_state)) { this._data.core.state = forget_state.call(this, this._data.core.state); }
 			this._cnt = 0;
 			this._model.data = {
 				'#' : {
@@ -4019,10 +4041,10 @@
 		var attr = with_values ? {} : [];
 		if(node && node.attributes) {
 			$.each(node.attributes, function (i, v) {
-				if($.inArray(v.nodeName.toLowerCase(),['style','contenteditable','hasfocus','tabindex']) !== -1) { return; }
-				if(v.nodeValue !== null && $.trim(v.nodeValue) !== '') {
-					if(with_values) { attr[v.nodeName] = v.nodeValue; }
-					else { attr.push(v.nodeName); }
+				if($.inArray(v.name.toLowerCase(),['style','contenteditable','hasfocus','tabindex']) !== -1) { return; }
+				if(v.value !== null && $.trim(v.value) !== '') {
+					if(with_values) { attr[v.name] = v.value; }
+					else { attr.push(v.name); }
 				}
 			});
 		}
@@ -4927,7 +4949,7 @@
 					});
 			}
 			*/
-			$(document).on("context_hide.vakata", $.proxy(function () { this._data.contextmenu.visible = false; }, this));
+			$(document).on("context_hide.vakata.jstree", $.proxy(function () { this._data.contextmenu.visible = false; }, this));
 		};
 		this.teardown = function () {
 			if(this._data.contextmenu.visible) {
@@ -4987,7 +5009,7 @@
 		this._show_contextmenu = function (obj, x, y, i) {
 			var d = this.get_node(obj, true),
 				a = d.children(".jstree-anchor");
-			$(document).one("context_show.vakata", $.proxy(function (e, data) {
+			$(document).one("context_show.vakata.jstree", $.proxy(function (e, data) {
 				var cls = 'jstree-contextmenu jstree-' + this.get_theme() + '-contextmenu';
 				$(data.element).addClass(cls);
 			}, this));
@@ -5152,6 +5174,7 @@
 					vakata_context.element.html(vakata_context.html);
 				}
 				if(vakata_context.items.length) {
+					vakata_context.element.appendTo("body");
 					e = vakata_context.element;
 					x = vakata_context.position_x;
 					y = vakata_context.position_y;
@@ -5191,7 +5214,7 @@
 			},
 			hide : function () {
 				if(vakata_context.is_visible) {
-					vakata_context.element.hide().find("ul").hide().end().find(':focus').blur();
+					vakata_context.element.hide().find("ul").hide().end().find(':focus').blur().end().detach();
 					vakata_context.is_visible = false;
 					/**
 					 * triggered on the document when the contextmenu is hidden
@@ -5307,14 +5330,13 @@
 					if(a.parent().not('.vakata-context-disabled')) {
 						a.mouseup();
 					}
-				})
-				.appendTo("body");
+				});
 
 			$(document)
-				.on("mousedown", function (e) {
+				.on("mousedown.vakata.jstree", function (e) {
 					if(vakata_context.is_visible && !$.contains(vakata_context.element[0], e.target)) { $.vakata.context.hide(); }
 				})
-				.on("context_show.vakata", function (e, data) {
+				.on("context_show.vakata.jstree", function (e, data) {
 					vakata_context.element.find("li:has(ul)").children("a").addClass("vakata-context-parent");
 					if(right_to_left) {
 						vakata_context.element.addClass("vakata-context-rtl").css("direction", "rtl");
@@ -5400,13 +5422,15 @@
 		var lastmv = false,
 			laster = false,
 			opento = false,
-			marker = $('<div id="jstree-marker">&#160;</div>').hide().appendTo('body');
+			marker = $('<div id="jstree-marker">&#160;</div>').hide(); //.appendTo('body');
 
 		$(document)
-			.bind('dnd_start.vakata', function (e, data) {
+			.on('dnd_start.vakata.jstree', function (e, data) {
 				lastmv = false;
+				if(!data || !data.data || !data.data.jstree) { return; }
+				marker.appendTo('body'); //.show();
 			})
-			.bind('dnd_move.vakata', function (e, data) {
+			.on('dnd_move.vakata.jstree', function (e, data) {
 				if(opento) { clearTimeout(opento); }
 				if(!data || !data.data || !data.data.jstree) { return; }
 
@@ -5522,16 +5546,16 @@
 				data.helper.find('.jstree-icon').removeClass('jstree-ok').addClass('jstree-er');
 				marker.hide();
 			})
-			.bind('dnd_scroll.vakata', function (e, data) {
+			.on('dnd_scroll.vakata.jstree', function (e, data) {
 				if(!data || !data.data || !data.data.jstree) { return; }
 				marker.hide();
 				lastmv = false;
 				data.helper.find('.jstree-icon:eq(0)').removeClass('jstree-ok').addClass('jstree-er');
 			})
-			.bind('dnd_stop.vakata', function (e, data) {
+			.on('dnd_stop.vakata.jstree', function (e, data) {
 				if(opento) { clearTimeout(opento); }
 				if(!data || !data.data || !data.data.jstree) { return; }
-				marker.hide();
+				marker.hide().detach();
 				var i, j, nodes = [];
 				if(lastmv) {
 					for(i = 0, j = data.data.nodes.length; i < j; i++) {
@@ -5552,7 +5576,7 @@
 					}
 				}
 			})
-			.bind('keyup keydown', function (e, data) {
+			.on('keyup.jstree keydown.jstree', function (e, data) {
 				data = $.vakata.dnd._get();
 				if(data && data.data && data.data.jstree) {
 					data.helper.find('.jstree-copy:eq(0)')[ data.data.origin && (data.data.origin.settings.dnd.always_copy || (data.data.origin.settings.dnd.copy && (e.metaKey || e.ctrlKey))) ? 'show' : 'hide' ]();
@@ -5619,8 +5643,8 @@
 					scroll_i: false,
 					is_touch: false
 				};
-				$(document).off("mousemove touchmove", $.vakata.dnd.drag);
-				$(document).off("mouseup touchend", $.vakata.dnd.stop);
+				$(document).off("mousemove.vakata.jstree touchmove.vakata.jstree", $.vakata.dnd.drag);
+				$(document).off("mouseup.vakata.jstree touchend.vakata.jstree", $.vakata.dnd.stop);
 			},
 			_scroll : function (init_only) {
 				if(!vakata_dnd.scroll_e || (!vakata_dnd.scroll_l && !vakata_dnd.scroll_t)) {
@@ -5681,8 +5705,8 @@
 						"zIndex"		: "10000"
 					});
 				}
-				$(document).bind("mousemove touchmove", $.vakata.dnd.drag);
-				$(document).bind("mouseup touchend", $.vakata.dnd.stop);
+				$(document).on("mousemove.vakata.jstree touchmove.vakata.jstree", $.vakata.dnd.drag);
+				$(document).on("mouseup.vakata.jstree touchend.vakata.jstree", $.vakata.dnd.stop);
 				return false;
 			},
 			drag : function (e) {
@@ -6739,4 +6763,29 @@
 	// include the wholerow plugin by default
 	// $.jstree.defaults.plugins.push("wholerow");
 
+
+(function ($) {
+	if(document.registerElement) {
+		var proto = Object.create(HTMLElement.prototype);
+		proto.createdCallback = function () {
+			var c = { core : {}, plugins : [] }, i;
+			for(i in $.jstree.plugins) {
+				if($.jstree.plugins.hasOwnProperty(i) && this.attributes[i]) {
+					c.plugins.push(i);
+					if(this.getAttribute(i) && JSON.parse(this.getAttribute(i))) {
+						c[i] = JSON.parse(this.getAttribute(i));
+					}
+				}
+			}
+			for(i in $.jstree.defaults.core) {
+				if($.jstree.defaults.core.hasOwnProperty(i) && this.attributes[i]) {
+					c.core[i] = JSON.parse(this.getAttribute(i)) || this.getAttribute(i);
+				}
+			}
+			jQuery(this).jstree(c);
+		};
+		// proto.attributeChangedCallback = function (name, previous, value) { };
+		document.registerElement("vakata-jstree", { prototype: proto });
+	}
+}(jQuery));
 }));
