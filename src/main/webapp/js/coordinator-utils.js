@@ -22,37 +22,10 @@
 					// patch up for the root node
 					this._data.core.original_container_html = $('<ul/>').append(this._data.core.original_container_html);
 				}, this))
-			.on('close_node.jstree', jQuery.proxy(function (e, data){
-				console.info('close_node', data);
-				data.node
-			}, this))
-			.on('loaded.jstree', jQuery.proxy(function (e, data){
-				console.info('loaded', data);
-			}, this))
-			.on('ready.jstree', jQuery.proxy(function (e, data){
-				console.info('ready', data);
-			}, this))
-			.on('load_node.jstree', jQuery.proxy(function (e, data){
-				console.info('load_node', data);
-			}, this))
-			.on('model.jstree', jQuery.proxy(function (e, data){
-				console.info('model', data);
-			}, this))
-			.on('redraw.jstree', jQuery.proxy(function (e, data){
-				console.info('redraw', data);
-			}, this))
-			.on('beofore_open.jstree', jQuery.proxy(function (e, data){
-				console.info('beofore_open', data);
-			}, this))
-			.on('after_open.jstree', jQuery.proxy(function (e, data){
-				console.info('after_open', data);
-			}, this))
-			
 		};
 		
 		this.redraw_node = function(obj, deep, is_callback) {
 			obj = parent.redraw_node.call(this, obj, deep, is_callback);
-			console.info('redraw_node', obj.id);
 			if(options){
 				var liContainer = this._data.core.original_container_html.find('#' + obj.id);
 				for(var selector in options){
@@ -82,36 +55,14 @@
 		
 	}
 	
-	function breadcrumbsSticker(a){
-		var menuSelector = $('#menuSelector').get(0);
-		$(a).on('mouseover',function () {
-            menuSelector.canceller.cancel();
-            menuSelector.show(this);
-        }).on('mouseout',function () {
-            menuSelector.canceller.schedule();
-        });
-	} 
-	
-	window.jstreeTablization = function(treeId){
+	window.jstreeTablization = function(treeId, options, onReadyHandler){
 		
 		if(treeId.indexOf('#') == -1){
 			treeId = '#' + treeId;
 		}
-		$(treeId).jstree({plugins: ['checkbox', 'types', 'decorators'],
-			// this combination with tie_selection set false is what ui expected
-			checkbox: {/*keep_selected_style: false, */whole_node: false, tie_selection: false},
-			types: {leaf: {icon: 'coordinator-icon coordinator-leaf'},
-					serial: {icon: 'coordinator-icon coordinator-serial'},
-					parallel: {icon: 'coordinator-icon coordinator-parallel'}},
-			decorators: {
-					'.jstree-table-row': function(liContainer, targetElem){
-						liContainer = $(liContainer);
-						targetElem = $(targetElem);
-						liContainer.prepend(targetElem);
-					},
-					
-				}
-			})
+		
+		
+		$(treeId).jstree(options)
 			.on('ready.jstree', function(){
 				var jstreeInst = $.jstree.reference(this);
 				// since prototype.js has polluted native JSON relevant methods, might as well do it here
@@ -120,8 +71,7 @@
 				container.find('[data-jstree]').each(function(i, e){
 					var node = jstreeInst.get_node(e, true);
 					var state = node.data().jstree;
-					var anchor = node.children('a.jstree-anchor');//, offsetRight;
-					
+					var anchor = node.children('a.jstree-anchor');
 					jstreeInst.set_type(e, state.type);
 					if(jstreeInst.is_leaf(e)){
 						if(state.checked){
@@ -141,6 +91,12 @@
 				              	'<div class="clear"></div>',
 				              '</div>'];
 				container.prepend(headers.join(''));
+				
+				if($.isFunction(onReadyHandler)){
+					onReadyHandler(jstreeInst);
+				}
+				
+				// logic copied from /lib/layout/breadcrumbs.js
 				var menuSelector = $('#menuSelector').get(0);
 				container.on('mouseover', 'a.model-link', function () {
 		            menuSelector.canceller.cancel();

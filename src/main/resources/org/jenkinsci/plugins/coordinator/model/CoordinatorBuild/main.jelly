@@ -147,7 +147,46 @@
 						$('.ui-tab-active').click();
 						
 						// from coordinator-utils.js
-						jstreeTablization('execPlan', $);
+						jstreeTablization('execPlan', 
+							{plugins: ['checkbox', 'types', 'decorators'],
+								// this combination with tie_selection set false is what ui expected
+							checkbox: {/*keep_selected_style: false, */whole_node: false, tie_selection: false},
+							types: {leaf: {icon: 'coordinator-icon coordinator-leaf'},
+									serial: {icon: 'coordinator-icon coordinator-serial'},
+									parallel: {icon: 'coordinator-icon coordinator-parallel'}},
+							decorators: {
+								'.jstree-table-row': function(liContainer, targetElem){
+										liContainer = $(liContainer);
+										targetElem = $(targetElem);
+										liContainer.prepend(targetElem);
+								},
+					
+							}},	function(jstreeInst){
+								var keepCheckedRegex = /(\.gif|(red|aborted)\.png)$/;
+								var nodes = jstreeInst.get_json(null, {no_data: true, no_state: true, flat: true});
+								for(var i in nodes){
+									if(nodes[i].type!=='leaf'){
+										continue;
+									}
+									var node = jstreeInst.get_node(nodes[i].id, true);
+									var imgSrcUri = node.children('.jstree-table-row').find('.jobStatus img').prop('src');
+									if(!keepCheckedRegex.test(imgSrcUri)){
+										jstreeInst.uncheck_node(nodes[i].id);
+									}
+								}
+								
+								startPollingBuildInfo(jstreeInst);
+							});
+							
+	    				function startPollingBuildInfo(jstreeInst){
+	    					$.get('pollActiveAtomicBuildStatus')
+	    						.done(function( data, textStatus, jqXHR ) {
+    								console.info(data);
+    							})
+    							.fail(function( jqXHR, textStatus, errorThrown) {
+    								alert('Jenkins server encountered problems. Please check relevant server log.');
+    							})
+	    				}
 	    				
 						$('#bottom-sticker').on('click', '#buildTrigger', function(){
 							var rootNode = $('#execPlan').jstree(true).get_json(null, {no_data: true})[0];
