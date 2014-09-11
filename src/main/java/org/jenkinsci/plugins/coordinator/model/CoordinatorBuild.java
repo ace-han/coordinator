@@ -16,13 +16,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.logging.Logger;
 import java.util.Set;
+import java.util.logging.Logger;
 
+import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 
 import jenkins.model.Jenkins;
 import net.sf.json.JSON;
+import net.sf.json.JSONNull;
 import net.sf.json.JSONObject;
 
 import org.apache.commons.jelly.JellyContext;
@@ -31,6 +33,8 @@ import org.apache.commons.jelly.Script;
 import org.apache.commons.jelly.XMLOutput;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.MetaClass;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.WebApp;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -106,21 +110,26 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 	}
 	
 	public AtomicBuildInfo getExecutionPlanInfo(){
-		if(this.tableRowIndexMap == null || this.tableRowIndexMap.isEmpty()){
-			this.tableRowIndexMap = new HashMap<String, Integer>();
-			prepareTableRowIndexMap(this.originalExecutionPlan, this.tableRowIndexMap);
-		}
+		prepareTableRowIndexMap();
 		return prepareAtomicBuildInfo(this.originalExecutionPlan, this.tableRowIndexMap, false);
 	}
-	
-	protected void prepareTableRowIndexMap(TreeNode node, Map<String, Integer> map) {
-		map.put(node.getId(), map.size());
-		for(TreeNode child: node.getChildren()){
-			prepareTableRowIndexMap(child, map);
+
+	private void prepareTableRowIndexMap() {
+		if(this.tableRowIndexMap == null){
+			this.tableRowIndexMap = new HashMap<String, Integer>();
+			List<TreeNode> list = this.originalExecutionPlan.getFlatNodes(true);
+			for(int i=0; i<list.size(); i++){
+				TreeNode node = list.get(i);
+				this.tableRowIndexMap.put(node.getId(), i);
+			}
 		}
 	}
 
 	public JSON doPollActiveAtomicBuildStatus(StaplerRequest req) {
+		if(this.performExecutor == null){
+			// no build or refresh or reload from disk
+			return JSONNull.getInstance();
+		}
 		Set<Entry<String, AbstractBuild<?, ?>>> entrySet = this.performExecutor.getActiveBuildMap().entrySet();
 		Map<String, String> result = new HashMap<String, String>(entrySet.size()*2 + 3);
 		TreeNode dummyNode = prepareDummyTreeNode();
@@ -134,11 +143,20 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		}
 		return JSONObject.fromObject(result);
 	}
+	
+	public String doAtomicBuildResultTableRowHtml(@QueryParameter String nodeId, 
+			 @QueryParameter String jobName, @QueryParameter int buildNumber){
+		prepareTableRowIndexMap();
+		AtomicBuildInfo abi = new AtomicBuildInfo();
+		abi.build = retrieveTargetBuild(jobName, buildNumber);
+		abi.treeNode = prepareDummyTreeNode();
+		abi.tableRowIndex = this.tableRowIndexMap.get(nodeId);
+		return getBuildInfoScriptAsString(abi);
+	}
 
 	private TreeNode prepareDummyTreeNode() {
 		TreeNode dummyNode = new TreeNode();
 		dummyNode.setText("Dummy for Polling Active Atomic Build Info");
-		dummyNode.getChildren().add(dummyNode);
 		return dummyNode;
 	}
 	
@@ -148,6 +166,7 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
         WebApp webapp = WebApp.getCurrent();
 		context.setClassLoader(webapp.getClassLoader());
         context.setVariable("it", abi);
+        context.setVariable("fromClazz", this.getClass());
         MetaClass mc = webapp.getMetaClass(this.getClass());
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try {
@@ -157,15 +176,15 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 			return baos.toString("UTF-8");
 		} catch (JellyException e) {
 			LOGGER.warning("Exception in tableRow.jelly:\n"+e);
-			return prepareBuildStatusPollingErrorMessage(e);
+			return prepareBuildStatusErrorMessage(e);
 		} catch (UnsupportedEncodingException e) {
 			LOGGER.warning("Could not resolve tableRow.jelly in the specific charset:\n" + e);
-			return prepareBuildStatusPollingErrorMessage(e);
+			return prepareBuildStatusErrorMessage(e);
 		}
 
 	}
 
-	private String prepareBuildStatusPollingErrorMessage(Exception e) {
+	private String prepareBuildStatusErrorMessage(Exception e) {
 		return "<div class='jstree-wholerow jstree-table-row' style='background-color:#ffebeb;'>"
 				+"<div class='jstree-table-col jobStatus'>check log for error details</div></div>";
 	}

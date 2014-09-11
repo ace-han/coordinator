@@ -45,12 +45,11 @@
 			        		</ul>
 			        	</div>
 						<div class="clear"></div>
-					
 				</div>
 				<j:choose>
 					<j:when test="${parameterized}">
 						<div id="parameterArea" class="ui-tabs-pane">
-							<f:form method="post" action="build${empty(delay)?'':'?delay='+delay}"
+							<f:form method="post" action="../build${empty(delay)?'':'?delay='+delay}"
 								name="parameters" tableClass="parameters">
 								<j:forEach var="parameterDefinition" items="${it.parameterDefinitions}">
 									<tbody>
@@ -74,11 +73,12 @@
 								</tbody>
 								<input type="hidden" name="statusCode" value="303" />
 								<input type="hidden" name="redirectTo" value="." />
+								<input type="hidden" name="version" value="${it.number}" />
 							</f:form>
 						</div>
 					</j:when>
 					<j:otherwise>
-						<f:form method="post" action="build${empty(delay)?'':'?delay='+delay}"
+						<f:form method="post" action="../build${empty(delay)?'':'?delay='+delay}"
 								name="parameters" tableClass="parameters">
 								<tbody style="display:none">
 									<f:entry title="executionPlan">
@@ -94,34 +94,28 @@
 									</f:entry>
 								</tbody>
 							<input type="hidden" name="statusCode" value="303" />
-							<input type="hidden" name="redirectTo" value="." />	
+							<input type="hidden" name="redirectTo" value="." />
+							<input type="hidden" name="version" value="${it.number}" />
 						</f:form>
 					</j:otherwise>
 				</j:choose>
-				
 			</div>
 		</div>
 		<div class="clear"></div>
 		
-		
-		<j:choose>
-			<j:when test="${it.parent.hasPermission(it.parent.BUILD)}">
-				<div id="bottom-sticker" >
-					<div class="bottom-sticker-inner">
-						<input id="buildTrigger" type="button" value="${%Build}" class="yui-button" />
-					</div>
-				</div>
-			</j:when>
-			<j:otherwise>
-				<div id="bottom-sticker" >
-					<div class="bottom-sticker-inner">
+		<div id="bottom-sticker" >
+			<div class="bottom-sticker-inner">
+				<j:choose>
+					<j:when test="${it.parent.hasPermission(it.parent.BUILD)}">
+		            	<f:apply />
+					</j:when>
+					<j:otherwise>
 						<input type="button" value="${%No Build Permission}" class="yui-button" 
 								disabled="disabled" title="missing build permission!!!"/>
-					</div>
-				</div>
-			</j:otherwise>
-		</j:choose>
-		
+					</j:otherwise>
+				</j:choose>
+			</div>
+		</div>
 		<st:once>
 	    	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/jquery.js"></script>
 	    	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/jstree/jstree.js"></script>
@@ -162,40 +156,108 @@
 								},
 					
 							}},	function(jstreeInst){
-								var keepCheckedRegex = /(\.gif|(red|aborted)\.png)$/;
-								var nodes = jstreeInst.get_json(null, {no_data: true, no_state: true, flat: true});
-								for(var i in nodes){
-									if(nodes[i].type!=='leaf'){
-										continue;
-									}
-									var node = jstreeInst.get_node(nodes[i].id, true);
-									var imgSrcUri = node.children('.jstree-table-row').find('.jobStatus img').prop('src');
-									if(!keepCheckedRegex.test(imgSrcUri)){
-										jstreeInst.uncheck_node(nodes[i].id);
-									}
-								}
 								
+								uncheckBasedOnJobStatus(jstreeInst);
 								startPollingBuildInfo(jstreeInst);
 							});
-							
-	    				function startPollingBuildInfo(jstreeInst){
+						
+						
+						function uncheckBasedOnJobStatus(jstreeInst, nodes){
+							var keepCheckedRegex = /(\.gif|(red|aborted)\.png)$/;
+							if(!nodes || nodes.length){
+								var nodes = jstreeInst.get_json(null, {no_data: true, no_state: true, flat: true});
+							}
+							var container = jstreeInst.get_original_container_html();
+							for(var i in nodes){
+								if(nodes[i].type!=='leaf'){
+									continue;
+								}
+								// var node = jstreeInst.get_node(nodes[i].id, true);
+								// we need to uncheck_node based on original_container_html 
+								var node = container.find('#' + nodes[i].id);
+								var imgSrcUri = node.children('.jstree-table-row').find('.jobStatus img').prop('src');
+								if(imgSrcUri && !keepCheckedRegex.test(imgSrcUri)){
+									jstreeInst.uncheck_node(nodes[i].id);
+								}
+							}
+						}
+						
+	    				function startPollingBuildInfo(jstreeInst, pendingMap){
+	    					pendingMap = pendingMap || {};
 	    					$.get('pollActiveAtomicBuildStatus')
 	    						.done(function( data, textStatus, jqXHR ) {
-    								console.info(data);
+	    							data = data || {};
+	    							var isEmptyResult = !data || $.isEmptyObject(data) 
+	    								, toBeFinishedMap = {};
+    								
+    								// prepare pendingMap
+    								if(!$.isEmptyObject(pendingMap)){
+    									// filter those considered should be finished
+    									for(var nodeId in pendingMap){
+    										if(!(nodeId in data)){
+    											toBeFinishedMap[nodeId] = pendingMap[nodeId];
+    										}
+    									}
+    								}
+    								pendingMap = data;
+    									
+    								// handle the toBeFinishedMap for the very last time
+    								for(nodeId in toBeFinishedMap){
+    									// extract the job name and build number from original_container_html
+    									var toBeFinishedRow = $(toBeFinishedMap[nodeId]);
+    									var jobName = toBeFinishedRow.find('.jstree-anchor.model-link').text();
+    									var buildNumber = toBeFinishedRow.find('.buildNumberLink').text();
+    									
+    									// trigger an ajax call to retrieve the generated tableRow.jelly
+    									(function(nodeId, jobName, buildNumber){
+    										$.get('atomicBuildResultStatus', 
+    											{nodeId: nodeId
+    											, jobName: jobName
+    											, buildNumber: buildNumber
+    											})
+    											.done(function( data, textStatus, jqXHR ) {
+    												jstreeInst.update_redraw_template(nodeId, '.jstree-table-row', data);
+    												// if need to uncheck the node
+    												uncheckBasedOnJobStatus(jstreeInst, 
+    													jstreeInst.get_json(nodeId, 
+    														{no_data: true, no_children: true, no_state: true, flat: true}));
+    											})
+    											.fail(function( jqXHR, textStatus, errorThrown){
+				    								jstreeInst.update_redraw_template(nodeId, '.jstree-table-row', 
+				    									'<div class="jstree-wholerow jstree-table-row" style="background-color:#ffebeb;">'
+				    									+ '<div class="jstree-table-col jobStatus">Network error. Please retry.</div></div>')		
+	    										});
+    									})(nodeId, jobName, buildNumber);
+    								}
+    								var buildTriggerBtn = YAHOO.widget.Button.getButton('buildTrigger')
+    								if(buildTriggerBtn){
+    									buildTriggerBtn.set('disabled', !isEmptyResult);
+    								}
+    								
     							})
     							.fail(function( jqXHR, textStatus, errorThrown) {
+    								// popup an alert to stop the polling
     								alert('Jenkins server encountered problems. Please check relevant server log.');
     							})
+    							.always(function(){
+    								setTimeout(function(){
+    									startPollingBuildInfo(jstreeInst, pendingMap);
+    								}, 5000); // just follow jenkins itself polling interval
+    							})
 	    				}
+	    				setTimeout(function(){
+	    					// in order to make apply work
+	    					$('form[name="parameters"]').append($('#bottom-sticker'));
+	    					$('span.apply-button').attr('id', 'buildTrigger').find('button').text('Build');
+	    				}, 500);
 	    				
-						$('#bottom-sticker').on('click', '#buildTrigger', function(){
-							var rootNode = $('#execPlan').jstree(true).get_json(null, {no_data: true})[0];
+	    				Event.observe($('form[name="parameters"]').get(0), "jenkins:apply", function(){
+	    					var rootNode = $('#execPlan').jstree(true).get_json(null, {no_data: true})[0];
 							// from coordinator-utils.js
 							optimized4NetworkTransmission(rootNode);
 							var jsonString = Object.toJSON(rootNode);
 							$('#execPlanJsonStrInput').val(jsonString);
-							$('form[name="parameters"]').submit();
-						})
+	    				});
 	    			});
 	    		})(jQuery.noConflict());
 	    	]]></script>

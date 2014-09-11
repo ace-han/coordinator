@@ -53,14 +53,15 @@
 			this.redraw_node(nodeId);
 		}
 		
+		this.get_original_container_html = function(){
+			return this._data.core.original_container_html;
+		}
 	}
 	
 	window.jstreeTablization = function(treeId, options, onReadyHandler){
-		
 		if(treeId.indexOf('#') == -1){
 			treeId = '#' + treeId;
 		}
-		
 		
 		$(treeId).jstree(options)
 			.on('ready.jstree', function(){
@@ -105,6 +106,5 @@
 		            menuSelector.canceller.schedule();
 		        });
 			});
-
 	}
 })(jQuery);

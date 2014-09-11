@@ -4,21 +4,29 @@ import hudson.Extension;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.TopLevelItem;
-import hudson.model.AbstractProject;
 import hudson.model.Descriptor;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParametersDefinitionProperty;
 import hudson.model.Project;
+import hudson.model.Run;
 import hudson.tasks.Builder;
 import hudson.util.DescribableList;
+import hudson.util.FormApply;
+import hudson.util.FormValidation;
+import hudson.util.QuotedStringTokenizer;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 
@@ -40,6 +48,8 @@ public class CoordinatorProject extends
 		Project<CoordinatorProject, CoordinatorBuild> implements TopLevelItem {
 	
 	private transient List<Integer> rebuildVersions = new CopyOnWriteArrayList<Integer>();
+	
+	private static final Logger LOGGER = Logger.getLogger(CoordinatorProject.class.getName());
 	
 	public CoordinatorProject(ItemGroup<?> parent, String name) {
 		super(parent, name);
@@ -70,12 +80,41 @@ public class CoordinatorProject extends
 			 * 	((Actionable) executable).addAction(action);
 			 * }
 			 */
-			targetBuild.getActions().clear();
+			reset(targetBuild);
 			return targetBuild;
 		} else {
 			CoordinatorBuild cb = super.newBuild();
 			cb.setOriginalExecutionPlan(this.getCoordinatorBuilder().getExecutionPlan());
 			return cb;
+		}
+	}
+	
+	protected void reset(CoordinatorBuild targetBuild) {
+		Object notStarted = extractNotStartEnumConstant();
+		setField(targetBuild, "state", notStarted);
+		setField(targetBuild, "result", null);
+		targetBuild.getActions().clear();
+	}
+
+	private Object extractNotStartEnumConstant() {
+		try {
+			Object[] constants = Run.class.getDeclaredField("state").getType()
+					.getEnumConstants();
+			Object notStarted = constants[0];
+			return notStarted;
+		} catch (Exception e) {
+			LOGGER.warning("could not extract field: state in Class hudson.model.Run\nException: " + e);
+			return null;
+		}
+	}
+
+	private void setField(CoordinatorBuild target, String fieldName, Object value) {
+		try {
+			Field field = Run.class.getDeclaredField(fieldName);
+			field.setAccessible(true);
+			field.set(target, value);
+		} catch (Exception e) {
+			LOGGER.warning("could force to set up field: " + fieldName + " value: " + value);
 		}
 	}
 	
@@ -102,9 +141,35 @@ public class CoordinatorProject extends
             return;
         }
         
+        final StaplerResponse originalResponse = rsp; 
+        if (FormApply.isApply(req)) {
+        	try {
+        		Integer version = Integer.valueOf(req.getParameter("version"));
+        		this.rebuildVersions.add(version);
+        	} catch (NumberFormatException e){
+        		throw FormValidation.error("invalid version in the request");
+        	}
+        	
+        	// too make rsp as an Response that won't do anything as sendRedirect is invoked...
+        	rsp = (StaplerResponse) Proxy.newProxyInstance(rsp.getClass().getClassLoader(), rsp.getClass().getInterfaces(), 
+        			new InvocationHandler(){
+
+						@Override
+						public Object invoke(Object proxy, Method method,
+								Object[] args) throws Throwable {
+							if(method.getName().equals("sendRedirect")){
+								return null;
+							}
+							Object result = method.invoke(originalResponse, args);
+							return result;
+						}
+        			});
+        }
+        
+        
         ParametersDefinitionProperty pdp = super.getProperty(ParametersDefinitionProperty.class);
         boolean emptyPdp = (pdp == null);
-        // below will always go to pp._doBuild(xxx), should be quick enough
+        // below will always goes to pp._doBuild(xxx), should be quick enough
         synchronized(this.properties){
         	// some patch up
         	if(emptyPdp){
@@ -132,6 +197,10 @@ public class CoordinatorProject extends
         	if(emptyPdp){
         		 super.properties.remove(pdp);
         	}
+        }
+        if (FormApply.isApply(req)) {
+        	FormApply.applyResponse("notificationBar.show(" + QuotedStringTokenizer.quote("Submission Accepted.") + ",notificationBar.OK)")
+        		.generateResponse(req, originalResponse, null);
         }
     }
 

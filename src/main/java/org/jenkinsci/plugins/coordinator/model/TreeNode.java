@@ -142,6 +142,37 @@ public class TreeNode {
 		return JSONObject.fromObject(this, JSON_CONFIG).toString();
 	}
 	
+	public List<TreeNode> getFlatNodes(boolean byDepth) {
+		ArrayList<TreeNode> result = new ArrayList<TreeNode>();
+		if(byDepth){
+			flatNodesByDepth(this, result);
+		} else {
+			flatNodesByBreadth(this, result);
+		}
+		return result;
+	}
+	
+	protected void flatNodesByBreadth(TreeNode node, ArrayList<TreeNode> list) {
+		list.add(node);
+		if(node.children.isEmpty()){
+			return;
+		}
+		list.addAll(node.children);
+		for(TreeNode child: node.children){
+			flatNodesByBreadth(child, list);
+		}
+	}
+
+	protected void flatNodesByDepth(TreeNode node, List<TreeNode> list){
+		list.add(node);
+		for(TreeNode child: node.children){
+			flatNodesByDepth(child, list);
+		}
+		
+	}
+	
+	
+	
 	public static class State {
 		public boolean opened = true;
 		public boolean disabled = false;

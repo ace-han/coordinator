@@ -11,6 +11,14 @@
 	
 	<j:set var="build" value="${it.build}"/>
 	<j:choose>
+		<j:when test="${fromClazz}">
+			<j:set var="fromClass" value="${fromClazz}"/>
+		</j:when>
+		<j:otherwise>
+			<j:set var="fromClass" value="org.jenkinsci.plugins.coordinator.model.CoordinatorBuild"/>
+		</j:otherwise>
+	</j:choose>
+	<j:choose>
 		<j:when test="${it.tableRowIndex %2 == 0}">
 			<j:set var="tableRowClass" value="jstree-table-row jstree-table-row-even"/>
 		</j:when>
@@ -31,7 +39,7 @@
 					<j:otherwise>
 						<div class="jstree-table-col jobStatus">
 							<st:include it="${build}" page="buildStatus.jelly"
-								class="org.jenkinsci.plugins.coordinator.model.CoordinatorBuild"/>
+								class="${fromClass}"/>
 						</div>
 						<div class="jstree-table-col lastDuration">
 							${build.durationString}
