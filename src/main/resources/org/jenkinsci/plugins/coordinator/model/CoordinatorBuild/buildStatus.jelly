@@ -17,7 +17,7 @@
 						</td>
 						<td>
 							<j:if test="${it.parent.hasAbortPermission()}">
-								<l:stopButton href="${it.url + '/stop'}" alt="[cancel]"/>
+								<l:stopButton href="${it.url + 'stop'}" alt="[cancel]"/>
 							</j:if>
 						</td>
 					</tr>

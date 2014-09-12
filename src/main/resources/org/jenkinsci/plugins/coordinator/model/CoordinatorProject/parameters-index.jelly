@@ -172,9 +172,11 @@
 										});
 		    				
 							$('#bottom-sticker').on('click', '#buildTrigger', function(){
-								var rootNode = $('#execPlan').jstree(true).get_json(null, {no_data: true})[0];
+								var jstreeInst = $('#execPlan').jstree(true);
+								var rootNode = jstreeInst.get_json(null, {no_data: true})[0];
 								// from coordinator-utils.js
 								optimized4NetworkTransmission(rootNode);
+								patchUpTreeNode(jstreeInst, rootNode);
 								var jsonString = Object.toJSON(rootNode);
 								$('#execPlanJsonStrInput').val(jsonString);
 								$('form[name="parameters"]').submit();

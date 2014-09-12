@@ -39,7 +39,7 @@
 					<j:otherwise>
 						<div class="jstree-table-col jobStatus">
 							<st:include it="${build}" page="buildStatus.jelly"
-								class="${fromClass}"/>
+								class="org.jenkinsci.plugins.coordinator.model.CoordinatorBuild"/>
 						</div>
 						<div class="jstree-table-col lastDuration">
 							${build.durationString}

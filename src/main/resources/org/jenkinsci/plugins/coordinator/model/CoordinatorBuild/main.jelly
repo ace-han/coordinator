@@ -74,6 +74,11 @@
 								<input type="hidden" name="statusCode" value="303" />
 								<input type="hidden" name="redirectTo" value="." />
 								<input type="hidden" name="version" value="${it.number}" />
+								<j:if test="${it.parent.hasPermission(it.parent.BUILD)}">
+									<div style="display:none;">
+										<f:apply />
+									</div>
+								</j:if>
 							</f:form>
 						</div>
 					</j:when>
@@ -96,6 +101,11 @@
 							<input type="hidden" name="statusCode" value="303" />
 							<input type="hidden" name="redirectTo" value="." />
 							<input type="hidden" name="version" value="${it.number}" />
+							<j:if test="${it.parent.hasPermission(it.parent.BUILD)}">
+								<div style="display:none;">
+									<f:apply />
+								</div>
+							</j:if>
 						</f:form>
 					</j:otherwise>
 				</j:choose>
@@ -107,7 +117,7 @@
 			<div class="bottom-sticker-inner">
 				<j:choose>
 					<j:when test="${it.parent.hasPermission(it.parent.BUILD)}">
-		            	<f:apply />
+		            	<input id="buildTrigger" type="button" value="${%Build}" class="yui-button" />
 					</j:when>
 					<j:otherwise>
 						<input type="button" value="${%No Build Permission}" class="yui-button" 
@@ -223,13 +233,14 @@
     														{no_data: true, no_children: true, no_state: true, flat: true}));
     											})
     											.fail(function( jqXHR, textStatus, errorThrown){
+    												console.info(jqXHR, textStatus, errorThrown);
 				    								jstreeInst.update_redraw_template(nodeId, '.jstree-table-row', 
 				    									'<div class="jstree-wholerow jstree-table-row" style="background-color:#ffebeb;">'
 				    									+ '<div class="jstree-table-col jobStatus">Network error. Please retry.</div></div>')		
 	    										});
     									})(nodeId, jobName, buildNumber);
     								}
-    								var buildTriggerBtn = YAHOO.widget.Button.getButton('buildTrigger')
+    								var buildTriggerBtn = YAHOO.widget.Button.getButton('buildTrigger');
     								if(buildTriggerBtn){
     									buildTriggerBtn.set('disabled', !isEmptyResult);
     								}
@@ -245,16 +256,18 @@
     								}, 5000); // just follow jenkins itself polling interval
     							})
 	    				}
-	    				setTimeout(function(){
-	    					// in order to make apply work
-	    					$('form[name="parameters"]').append($('#bottom-sticker'));
-	    					$('span.apply-button').attr('id', 'buildTrigger').find('button').text('Build');
-	    				}, 500);
+	    				
+	    				$('#bottom-sticker').on('click', '#buildTrigger', function(){
+	    					$('span.apply-button').trigger('click');
+	    				});
+	    				
 	    				
 	    				Event.observe($('form[name="parameters"]').get(0), "jenkins:apply", function(){
-	    					var rootNode = $('#execPlan').jstree(true).get_json(null, {no_data: true})[0];
+	    					var jstreeInst = $('#execPlan').jstree(true);
+	    					var rootNode = jstreeInst.get_json(null, {no_data: true})[0];
 							// from coordinator-utils.js
 							optimized4NetworkTransmission(rootNode);
+							patchUpTreeNode(jstreeInst, rootNode);
 							var jsonString = Object.toJSON(rootNode);
 							$('#execPlanJsonStrInput').val(jsonString);
 	    				});

@@ -116,7 +116,7 @@ public class PerformExecutor {
 	private void prepareExecutionPlan() {
 		CoordinatorParameterValue parameter = (CoordinatorParameterValue)this.coordinatorBuild.getAction(ParametersAction.class)
 				.getParameter(CoordinatorParameterValue.PARAM_KEY);
-		TreeNode.mergeCheckedStatus(this.coordinatorBuild.getOriginalExecutionPlan(), parameter.getValue());
+		TreeNode.mergeState(this.coordinatorBuild.getOriginalExecutionPlan(), parameter.getValue());
 	}
 	
 	
@@ -126,7 +126,9 @@ public class PerformExecutor {
 		State state = node.getState();
 		if(executorPool.isShutdown()
 				|| state.disabled 
-				|| !state.checked){
+				|| !(state.checked || state.undetermined)){
+			// patch-up for serial build node.getChildren().get(0) is a not checked/determined node
+			postBuildParentChildrenMap(node);
 			return;
 		}
 		if(node.isLeaf()){
@@ -164,7 +166,7 @@ public class PerformExecutor {
 	}
 
 
-	protected void postSuccessfulBuild(TreeNode node) {
+	protected void postBuildParentChildrenMap(TreeNode node) {
 		TreeNode parent = node.getParent();
 		if(parent == null){
 			// means node == root => true
@@ -183,7 +185,7 @@ public class PerformExecutor {
 		}
 		if(childMap.isEmpty()) {
 			this.parentChildrenMap.remove(parent.getId());
-			postSuccessfulBuild(parent);
+			postBuildParentChildrenMap(parent);
 		}
 		
 	}
@@ -295,7 +297,7 @@ public class PerformExecutor {
 		for(TreeNode child: children){
 			child.setParent(node);
 			State state = child.getState();
-			if(!state.disabled && state.checked){
+			if(!state.disabled && (state.checked || state.undetermined)){
 				idNodeMap.put(child.getId(), child);
 			}
 		}
@@ -416,7 +418,7 @@ public class PerformExecutor {
 			Result result = targetBuild.getResult();
 			doPostBuildLog(node, result);
 			if(result == Result.SUCCESS || result == Result.UNSTABLE){
-				postSuccessfulBuild(node);
+				postBuildParentChildrenMap(node);
 			} else {
 				executorPool.shutdown();
 			}

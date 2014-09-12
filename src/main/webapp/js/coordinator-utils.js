@@ -4,9 +4,24 @@
 		delete node.li_attr;
 		delete node.a_attr;
 		delete node.data;
+		delete node.icon;
 		for(var i=0; i<node.children.length; i++){
-			optimized4NetworkTransmission(node.children[i]);
+			window.optimized4NetworkTransmission(node.children[i]);
 		}
+	}
+	
+	window.patchUpTreeNode = function (jstreeInst, node) {
+		if(!jstreeInst){
+			jstreeInst = $.jstree.reference(node.id);
+		}
+		var liContainer = jstreeInst.get_node(node.id, true);
+		if(liContainer.find('>a.jstree-anchor>.jstree-undetermined').length){
+			node.state.undetermined = true;
+		}
+		for(var i=0; i<node.children.length; i++){
+			window.patchUpTreeNode(jstreeInst, node.children[i]);
+		}
+		
 	}
 	
 	$.jstree.defaults.decorators = {

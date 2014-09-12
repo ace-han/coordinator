@@ -364,12 +364,12 @@
 										})
     				
     				function saveExecPlanJsonString(){
-    					try{
-    					var rootNode = $('#execPlan').jstree(true).get_json(null, {no_data: true})[0];
-    					} catch(e){
-    					}
+    					var jstreeInst = $('#execPlan').jstree(true);
+    					var rootNode = jstreeInst.get_json(null, {no_data: true})[0];
     					// from coordinator-utils.js
     					optimized4NetworkTransmission(rootNode);
+    					
+    					patchUpTreeNode(jstreeInst, rootNode);
     					
 						// Don't use json.js JSON.stringify! 
 						// Here we align with Jenkins convention Prototype.js

@@ -179,6 +179,11 @@ public class TreeNode {
 	    public boolean selected = true;
 	    public boolean checked = false;
 	    
+	    // as I could not find out where to save this status
+	    // it's mainly for actually doing atomic job to get the child job linked
+	    // only used for server side, client side has its own mechanism to work well
+	    public boolean undetermined = false;
+	    
 	    //public String type; // it's weird that type in state doesnot change as ui changes
 	    
 	    public State(){}
@@ -195,10 +200,17 @@ public class TreeNode {
 	 * @param left
 	 * @param right
 	 */
-	public static void mergeCheckedStatus(TreeNode left, TreeNode right) {
-		left.state.checked = right.state.checked;
+	public static void mergeState(TreeNode left, TreeNode right) {
+		State lstate = left.state;
+		State rstate = right.state;
+		
+		lstate.opened = rstate.opened;
+		lstate.disabled = rstate.disabled;
+		lstate.selected = rstate.selected;
+		lstate.checked = rstate.checked;
+		lstate.undetermined = rstate.undetermined;
 		for(int i=0; i<left.children.size(); i++){
-			mergeCheckedStatus(left.children.get(i), right.children.get(i));
+			mergeState(left.children.get(i), right.children.get(i));
 		}
 		
 	}
