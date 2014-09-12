@@ -169,6 +169,8 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
         context.setVariable("fromClazz", this.getClass());
         MetaClass mc = webapp.getMetaClass(this.getClass());
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ClassLoader old = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(mc.classLoader.loader);
         try {
         	XMLOutput output = XMLOutput.createXMLOutput(baos);
 			Script script = mc.loadTearOff(JellyClassTearOff.class).findScript("tableRow.jelly");
@@ -180,6 +182,8 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		} catch (UnsupportedEncodingException e) {
 			LOGGER.warning("Could not resolve tableRow.jelly in the specific charset:\n" + e);
 			return prepareBuildStatusErrorMessage(e);
+		} finally {
+			Thread.currentThread().setContextClassLoader(old);
 		}
 
 	}
