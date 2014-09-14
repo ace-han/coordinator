@@ -62,7 +62,7 @@
 			var targetElem = liContainer.children(selector).remove();
 			var handler = options[selector];
 			if(targetElem.length && $.isFunction(handler)){
-				handler(liContainer, targetElem);
+				handler(liContainer, newTemplate);
 			}
 			// update to page
 			this.redraw_node(nodeId);

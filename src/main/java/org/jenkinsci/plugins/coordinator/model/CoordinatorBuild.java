@@ -190,7 +190,8 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 
 	private String prepareBuildStatusErrorMessage(Exception e) {
 		return "<div class='jstree-wholerow jstree-table-row' style='background-color:#ffebeb;'>"
-				+"<div class='jstree-table-col jobStatus'>check log for error details</div></div>";
+				+"<div class='jstree-table-col jobStatus'>&nbsp;</div>"
+				+ "<div class='jstree-table-col lastDuration'>Server side error. Please checkout the server log</div></div>";
 	}
 
 	protected AtomicBuildInfo prepareAtomicBuildInfo(TreeNode node, Map<String, Integer> tableRowIndexMap, boolean simpleMode){

@@ -233,10 +233,11 @@
     														{no_data: true, no_children: true, no_state: true, flat: true}));
     											})
     											.fail(function( jqXHR, textStatus, errorThrown){
-    												console.info(jqXHR, textStatus, errorThrown);
 				    								jstreeInst.update_redraw_template(nodeId, '.jstree-table-row', 
 				    									'<div class="jstree-wholerow jstree-table-row" style="background-color:#ffebeb;">'
-				    									+ '<div class="jstree-table-col jobStatus">Network error. Please retry.</div></div>')		
+				    									+ '<div class="jstree-table-col jobStatus">&nbsp;</div>' // for padding the space
+				    									+ '<div class="jstree-table-col lastDuration">Network error: '
+				    									+ jqXHR.status + '. Please refresh the page.</div></div>')		
 	    										});
     									})(nodeId, jobName, buildNumber);
     								}
