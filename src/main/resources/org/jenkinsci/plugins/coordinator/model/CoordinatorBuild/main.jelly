@@ -166,7 +166,6 @@
 								},
 					
 							}},	function(jstreeInst){
-								
 								uncheckBasedOnJobStatus(jstreeInst);
 								startPollingBuildInfo(jstreeInst);
 							});
@@ -194,6 +193,7 @@
 						
 	    				function startPollingBuildInfo(jstreeInst, pendingMap){
 	    					pendingMap = pendingMap || {};
+	    					var nodeId;
 	    					$.get('pollActiveAtomicBuildStatus')
 	    						.done(function( data, textStatus, jqXHR ) {
 	    							data = data || {};
@@ -203,24 +203,27 @@
     								// prepare pendingMap
     								if(!$.isEmptyObject(pendingMap)){
     									// filter those considered should be finished
-    									for(var nodeId in pendingMap){
+    									for(nodeId in pendingMap){
     										if(!(nodeId in data)){
     											toBeFinishedMap[nodeId] = pendingMap[nodeId];
     										}
     									}
     								}
     								pendingMap = data;
+    								
+    								for(nodeId in pendingMap){
+    									jstreeInst.update_redraw_template(nodeId, '.jstree-table-row', pendingMap[nodeId]);
+    								}
     									
     								// handle the toBeFinishedMap for the very last time
     								for(nodeId in toBeFinishedMap){
-    									// extract the job name and build number from original_container_html
-    									var toBeFinishedRow = $(toBeFinishedMap[nodeId]);
-    									var jobName = toBeFinishedRow.find('.jstree-anchor.model-link').text();
-    									var buildNumber = toBeFinishedRow.find('.buildNumberLink').text();
+    									// extract the job name and build number from container_html, original_container_html
+    									var jobName = jstreeInst.get_container().find('#' + nodeId).children('.jstree-anchor.model-link').text();
+    									var buildNumber = $(toBeFinishedMap[nodeId]).find('.buildNumberLink').text();
     									
     									// trigger an ajax call to retrieve the generated tableRow.jelly
     									(function(nodeId, jobName, buildNumber){
-    										$.get('atomicBuildResultStatus', 
+    										$.get('atomicBuildResultTableRowHtml', 
     											{nodeId: nodeId
     											, jobName: jobName
     											, buildNumber: buildNumber
