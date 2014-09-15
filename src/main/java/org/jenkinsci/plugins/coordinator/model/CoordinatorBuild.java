@@ -142,7 +142,10 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 			AtomicBuildInfo abi = new AtomicBuildInfo();
 			abi.build = build;
 			abi.treeNode = dummyNode;	// just taking advantage of tableRow.jelly
-			abi.tableRowIndex = this.tableRowIndexMap.get(entry.getKey());
+			
+			// usually this is intermediate after getExecutionPlanInfo()
+			// consider the index is still okay to indicate
+			abi.tableRowIndex = this.tableRowIndexMap.get(entry.getKey()); 
 			result.put(entry.getKey(), getBuildInfoScriptAsString(context, abi));
 		}
 		return JSONObject.fromObject(result);
@@ -150,10 +153,16 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 	
 	public String doAtomicBuildResultTableRowHtml(StaplerRequest req, @QueryParameter String nodeId, 
 			 @QueryParameter String jobName, @QueryParameter int buildNumber){
-		prepareTableRowIndexMap();
 		AtomicBuildInfo abi = new AtomicBuildInfo();
 		abi.build = retrieveTargetBuild(jobName, buildNumber);
+		if(abi.build == null){
+			String errorMsg = "Insufficient parameters to retrieve specific build, jobName: " 
+					+ jobName + " build #: "+ buildNumber;
+			LOGGER.warning(errorMsg);
+			return prepareBuildStatusErrorMessage(new IllegalArgumentException(errorMsg));
+		}
 		abi.treeNode = prepareDummyTreeNode();
+		prepareTableRowIndexMap();
 		abi.tableRowIndex = this.tableRowIndexMap.get(nodeId);
 		JellyContext context = prepareJellyContextVariables(req);
 		return getBuildInfoScriptAsString(context, abi);
