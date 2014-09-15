@@ -224,7 +224,7 @@
     									if(needEmptyJobStatusDoubleCheck){
 	    									// see if any job finishes way too quick to update its final status
     										$.each(jstreeInst.get_bottom_checked(), function(i, nodeId){
-    											if(jstreeInst.is_disabled(nodeId)){
+    											if( jstreeInst.is_disabled(nodeId) && toBeFinishedList.indexOf(nodeId)!=-1 ){
     												// since get_bottom_checked method does not filter disabled ones
     												return true;
     											}

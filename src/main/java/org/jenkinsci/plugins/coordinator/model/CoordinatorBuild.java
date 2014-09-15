@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.coordinator.model;
 
+import hudson.Functions;
 import hudson.Util;
 import hudson.model.Action;
 import hudson.model.Build;
@@ -135,13 +136,14 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		Set<Entry<String, AbstractBuild<?, ?>>> entrySet = this.performExecutor.getActiveBuildMap().entrySet();
 		Map<String, String> result = new HashMap<String, String>(entrySet.size()*2 + 3);
 		TreeNode dummyNode = prepareDummyTreeNode();
+		JellyContext context = prepareJellyContextVariables(req);
 		for(Map.Entry<String, AbstractBuild<?, ?>> entry: entrySet){
 			AbstractBuild<?, ?> build = entry.getValue();
 			AtomicBuildInfo abi = new AtomicBuildInfo();
 			abi.build = build;
 			abi.treeNode = dummyNode;	// just taking advantage of tableRow.jelly
 			abi.tableRowIndex = this.tableRowIndexMap.get(entry.getKey());
-			result.put(entry.getKey(), getBuildInfoScriptAsString(req, abi));
+			result.put(entry.getKey(), getBuildInfoScriptAsString(context, abi));
 		}
 		return JSONObject.fromObject(result);
 	}
@@ -153,7 +155,8 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		abi.build = retrieveTargetBuild(jobName, buildNumber);
 		abi.treeNode = prepareDummyTreeNode();
 		abi.tableRowIndex = this.tableRowIndexMap.get(nodeId);
-		return getBuildInfoScriptAsString(req, abi);
+		JellyContext context = prepareJellyContextVariables(req);
+		return getBuildInfoScriptAsString(context, abi);
 	}
 
 	private TreeNode prepareDummyTreeNode() {
@@ -162,15 +165,9 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		return dummyNode;
 	}
 	
-	protected String getBuildInfoScriptAsString(StaplerRequest req, AtomicBuildInfo abi) {
-		JellyContext context = new JellyContext();
-        // let Jelly see the whole classes
-        WebApp webapp = WebApp.getCurrent();
-		context.setClassLoader(webapp.getClassLoader());
-        context.setVariable("it", abi);
-        // this variable is needed to make "jelly:fmt" taglib work correctly
-        context.setVariable("org.apache.commons.jelly.tags.fmt.locale",req.getLocale());
-        MetaClass mc = webapp.getMetaClass(this.getClass());
+	protected String getBuildInfoScriptAsString(JellyContext context, AtomicBuildInfo abi) {
+		context.setVariable("it", abi);
+        MetaClass mc = WebApp.getCurrent().getMetaClass(this.getClass());
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ClassLoader old = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(mc.classLoader.loader);
@@ -189,6 +186,17 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 			Thread.currentThread().setContextClassLoader(old);
 		}
 
+	}
+
+	protected JellyContext prepareJellyContextVariables(StaplerRequest req) {
+		JellyContext context = new JellyContext();
+        // let Jelly see the whole classes
+		context.setClassLoader( WebApp.getCurrent().getClassLoader());
+        // fix rootURL, resURL, imagesURL is missing
+        Functions.initPageVariables(context);
+        // this variable is needed to make "jelly:fmt" taglib work correctly
+        context.setVariable("org.apache.commons.jelly.tags.fmt.locale",req.getLocale());
+		return context;
 	}
 
 	private String prepareBuildStatusErrorMessage(Exception e) {

@@ -40,7 +40,7 @@
 							<i:formatDate value="${build.timestamp.time}" pattern="yyyy-MM-dd HH:mm:ss Z" />	
 						</div>
 						<div class="jstree-table-col buildNumber">
-							<a href="${build.url}" class="model-link buildNumberLink">${build.number}</a>
+							<a href="${rootURL + '/' + build.url}" class="model-link buildNumberLink">${build.number}</a>
 						</div>
 					</j:otherwise>
 				</j:choose>
