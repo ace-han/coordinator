@@ -171,7 +171,23 @@ public class TreeNode {
 		
 	}
 	
-	
+	public TreeNode clone(boolean deep){
+		TreeNode clone = new TreeNode();
+		clone.id = this.id;
+		clone.text = this.text;
+		clone.type = this.type;
+		clone.state = this.state;
+		clone.parent = this.parent;
+		clone.buildNumber = this.buildNumber;
+		if(deep){
+			for(TreeNode c: this.children){
+				clone.children.add(c.clone(deep));
+			}
+		} else {
+			clone.children = this.children;
+		}
+		return clone;
+	}
 	
 	public static class State {
 		public boolean opened = true;

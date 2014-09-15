@@ -166,7 +166,6 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
         WebApp webapp = WebApp.getCurrent();
 		context.setClassLoader(webapp.getClassLoader());
         context.setVariable("it", abi);
-        context.setVariable("fromClazz", this.getClass());
         MetaClass mc = webapp.getMetaClass(this.getClass());
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ClassLoader old = Thread.currentThread().getContextClassLoader();

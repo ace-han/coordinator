@@ -84,7 +84,8 @@ public class CoordinatorProject extends
 			return targetBuild;
 		} else {
 			CoordinatorBuild cb = super.newBuild();
-			cb.setOriginalExecutionPlan(this.getCoordinatorBuilder().getExecutionPlan());
+			TreeNode brandNewExecutionPlan = this.getCoordinatorBuilder().getExecutionPlan().clone(true);
+			cb.setOriginalExecutionPlan(brandNewExecutionPlan);
 			return cb;
 		}
 	}
