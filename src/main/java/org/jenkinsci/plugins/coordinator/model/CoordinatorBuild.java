@@ -139,19 +139,19 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 			abi.build = build;
 			abi.treeNode = dummyNode;	// just taking advantage of tableRow.jelly
 			abi.tableRowIndex = this.tableRowIndexMap.get(entry.getKey());
-			result.put(entry.getKey(), getBuildInfoScriptAsString(abi));
+			result.put(entry.getKey(), getBuildInfoScriptAsString(req, abi));
 		}
 		return JSONObject.fromObject(result);
 	}
 	
-	public String doAtomicBuildResultTableRowHtml(@QueryParameter String nodeId, 
+	public String doAtomicBuildResultTableRowHtml(StaplerRequest req, @QueryParameter String nodeId, 
 			 @QueryParameter String jobName, @QueryParameter int buildNumber){
 		prepareTableRowIndexMap();
 		AtomicBuildInfo abi = new AtomicBuildInfo();
 		abi.build = retrieveTargetBuild(jobName, buildNumber);
 		abi.treeNode = prepareDummyTreeNode();
 		abi.tableRowIndex = this.tableRowIndexMap.get(nodeId);
-		return getBuildInfoScriptAsString(abi);
+		return getBuildInfoScriptAsString(req, abi);
 	}
 
 	private TreeNode prepareDummyTreeNode() {
@@ -160,12 +160,14 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		return dummyNode;
 	}
 	
-	protected String getBuildInfoScriptAsString(AtomicBuildInfo abi) {
+	protected String getBuildInfoScriptAsString(StaplerRequest req, AtomicBuildInfo abi) {
 		JellyContext context = new JellyContext();
         // let Jelly see the whole classes
         WebApp webapp = WebApp.getCurrent();
 		context.setClassLoader(webapp.getClassLoader());
         context.setVariable("it", abi);
+        // this variable is needed to make "jelly:fmt" taglib work correctly
+        context.setVariable("org.apache.commons.jelly.tags.fmt.locale",req.getLocale());
         MetaClass mc = webapp.getMetaClass(this.getClass());
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ClassLoader old = Thread.currentThread().getContextClassLoader();
