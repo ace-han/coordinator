@@ -133,6 +133,8 @@
 	    	<script type="text/javascript"><![CDATA[
 	    		(function jQueryNamespacing($){
 	    			$(function(){
+	    				
+	    				
 	    				$('.ui-tabs').on('click', '.ui-tabs-tab', function(e){
 	    					e.preventDefault();	// just avoid appending #xxx to the url
 							var self = $(this);
@@ -178,53 +180,72 @@
 						
 						function uncheckBasedOnJobStatus(jstreeInst, nodes){
 							var keepCheckedRegex = /(\.gif|(red|aborted)\.png)$/;
-							if(!nodes || nodes.length){
+							if(!nodes || !nodes.length){
 								var nodes = jstreeInst.get_json(null, {no_data: true, no_state: true, flat: true});
 							}
 							var container = jstreeInst.get_original_container_html();
-							for(var i in nodes){
-								if(nodes[i].type!=='leaf'){
-									continue;
+							$.each(nodes, function(i, node){
+								if(node.type!=='leaf'){
+									return true;
 								}
-								// var node = jstreeInst.get_node(nodes[i].id, true);
+								// var node = jstreeInst.get_node(node.id, true);
 								// we need to uncheck_node based on original_container_html 
-								var node = container.find('#' + nodes[i].id);
-								var imgSrcUri = node.children('.jstree-table-row').find('.jobStatus img').prop('src');
+								var imgSrcUri = container.find('#' + node.id).children('.jstree-table-row')
+														.find('.jobStatus img').prop('src');
 								if(imgSrcUri && !keepCheckedRegex.test(imgSrcUri)){
-									jstreeInst.uncheck_node(nodes[i].id);
+									jstreeInst.uncheck_node(node.id);
 								}
-							}
+							})
 						}
 						
+	    				var needEmptyJobStatusDoubleCheck = true;
+	    				
 	    				function startPollingBuildInfo(jstreeInst, pendingMap){
 	    					pendingMap = pendingMap || {};
 	    					var nodeId;
 	    					$.get('pollActiveAtomicBuildStatus')
 	    						.done(function( data, textStatus, jqXHR ) {
 	    							data = data || {};
-	    							var isEmptyResult = !data || $.isEmptyObject(data) 
-	    								, toBeFinishedMap = {};
+	    							var isEmptyResult = $.isEmptyObject(data) 
+	    								, toBeFinishedList = [];
     								
     								// prepare pendingMap
     								if(!$.isEmptyObject(pendingMap)){
     									// filter those considered should be finished
     									for(nodeId in pendingMap){
     										if(!(nodeId in data)){
-    											toBeFinishedMap[nodeId] = pendingMap[nodeId];
+    											toBeFinishedList.push(nodeId);
     										}
     									}
+    									needEmptyJobStatusDoubleCheck = true;
     								}
+    								
+    								if(isEmptyResult){
+    									if(needEmptyJobStatusDoubleCheck){
+	    									// see if any job finishes way too quick to update its final status
+    										$.each(jstreeInst.get_bottom_checked(), function(i, nodeId){
+    											if(jstreeInst.is_disabled(nodeId)){
+    												// since get_bottom_checked method does not filter disabled ones
+    												return true;
+    											}
+    											toBeFinishedList.push(nodeId);
+    										});
+    										needEmptyJobStatusDoubleCheck = false;
+    									}
+    								}
+    								
     								pendingMap = data;
     								
     								for(nodeId in pendingMap){
     									jstreeInst.update_redraw_template(nodeId, '.jstree-table-row', pendingMap[nodeId]);
     								}
     									
-    								// handle the toBeFinishedMap for the very last time
-    								for(nodeId in toBeFinishedMap){
-    									// extract the job name and build number from container_html, original_container_html
-    									var jobName = jstreeInst.get_container().find('#' + nodeId).children('.jstree-anchor.model-link').text();
-    									var buildNumber = $(toBeFinishedMap[nodeId]).find('.buildNumberLink').text();
+    								// handle the toBeFinishedList for the very last time
+    								$.each(toBeFinishedList, function(i, nodeId){
+    									// extract the job name and build number from original_container_html
+    									var liContainer = jstreeInst.get_original_container_html().find('#'+nodeId);
+    									var jobName = liContainer.children('.model-link').text();
+    									var buildNumber = liContainer.find('.buildNumberLink').text();
     									
     									// trigger an ajax call to retrieve the generated tableRow.jelly
     									(function(nodeId, jobName, buildNumber){
@@ -235,10 +256,12 @@
     											})
     											.done(function( data, textStatus, jqXHR ) {
     												jstreeInst.update_redraw_template(nodeId, '.jstree-table-row', data);
-    												// if need to uncheck the node
-    												uncheckBasedOnJobStatus(jstreeInst, 
-    													jstreeInst.get_json(nodeId, 
-    														{no_data: true, no_children: true, no_state: true, flat: true}));
+    												setTimeout(function(){
+	    												// if need to uncheck the node
+    													uncheckBasedOnJobStatus(jstreeInst, 
+    														jstreeInst.get_json(nodeId, 
+    															{no_data: true, no_children: true, no_state: true, flat: true}));
+    													}, 500);
     											})
     											.fail(function( jqXHR, textStatus, errorThrown){
 				    								jstreeInst.update_redraw_template(nodeId, '.jstree-table-row', 
@@ -248,7 +271,7 @@
 				    									+ jqXHR.status + '. Please refresh the page.</div></div>')		
 	    										});
     									})(nodeId, jobName, buildNumber);
-    								}
+    								})
     								var buildTriggerBtn = YAHOO.widget.Button.getButton('buildTrigger');
     								if(buildTriggerBtn){
     									buildTriggerBtn.set('disabled', !isEmptyResult);

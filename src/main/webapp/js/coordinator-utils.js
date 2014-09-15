@@ -49,7 +49,7 @@
 					var handler = options[selector];
 					if(targetElem.length && $.isFunction(handler)){
 						// please be ware of that, the obj is not yet appended to the document
-						handler(obj, targetElem);
+						handler.call(this, obj, targetElem);
 					}
 				}
 			}
@@ -62,7 +62,7 @@
 			var targetElem = liContainer.children(selector).remove();
 			var handler = options[selector];
 			if(targetElem.length && $.isFunction(handler)){
-				handler(liContainer, newTemplate);
+				handler.call(this, liContainer, newTemplate);
 			}
 			// update to page
 			this.redraw_node(nodeId);
