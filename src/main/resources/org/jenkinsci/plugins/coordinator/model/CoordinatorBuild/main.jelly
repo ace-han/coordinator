@@ -26,12 +26,12 @@
 							<a id="showParameterTrigger" href="#parameterArea">Parameters</a>
 						</div>
 						<div class="ui-tab-active ui-tabs-tab">
-							<a id="showBuildersTrigger" href="#builderArea">Build Profile</a>
+							<a id="showBuildersTrigger" href="#builderArea">Execution Plan</a>
 						</div>				
 					</j:when>
 					<j:otherwise>
 						<div class="ui-tab-active ui-tabs-tab">
-							<a id="showBuildersTrigger" href="#builderArea">Build Profile</a>
+							<a id="showBuildersTrigger" href="#builderArea">Execution Plan</a>
 						</div>
 					</j:otherwise>
 				</j:choose>
