@@ -168,6 +168,11 @@
 							}},	function(jstreeInst){
 								uncheckBasedOnJobStatus(jstreeInst);
 								startPollingBuildInfo(jstreeInst);
+								// update the bottom build button position
+								jstreeInst.element
+									.on('after_open.jstree after_close.jstree', function(){
+										window.fireEvent(document.getElementsByTagName('body')[0], 'scroll');
+									});
 							});
 						
 						
