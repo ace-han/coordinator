@@ -50,8 +50,8 @@
 					<j:when test="${parameterized}">
 						<div id="parameterArea" class="ui-tabs-pane">
 							<f:form method="post" action="../build${empty(delay)?'':'?delay='+delay}"
-								name="parameters" tableClass="parameters">
-								<j:forEach var="parameterDefinition" items="${it.parameterDefinitions}">
+								name="parameters" tableClass="parameters" target="_self">
+								<j:forEach var="parameterDefinition" items="${it.parameterDefinitionsWithValues}">
 									<tbody>
 										<st:include it="${parameterDefinition}"
 									                page="${parameterDefinition.descriptor.valuePage}" optional="true"/>
@@ -84,7 +84,7 @@
 					</j:when>
 					<j:otherwise>
 						<f:form method="post" action="../build${empty(delay)?'':'?delay='+delay}"
-								name="parameters" tableClass="parameters">
+								name="parameters" tableClass="parameters" target="_self">
 								<tbody style="display:none">
 									<f:entry title="executionPlan">
 										<div name="parameter">

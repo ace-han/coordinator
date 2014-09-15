@@ -3,9 +3,13 @@ package org.jenkinsci.plugins.coordinator.model;
 import hudson.Util;
 import hudson.model.Action;
 import hudson.model.Build;
+import hudson.model.ParameterValue;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.CauseAction;
+import hudson.model.ParameterDefinition;
+import hudson.model.ParametersAction;
+import hudson.model.ParametersDefinitionProperty;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -19,7 +23,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Logger;
 
-import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 
 import jenkins.model.Jenkins;
@@ -34,7 +37,6 @@ import org.apache.commons.jelly.XMLOutput;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.MetaClass;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.WebApp;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -223,6 +225,26 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 			return null;
 		}
 		return (AbstractBuild<?, ?>)project.getBuildByNumber(buildNumber);
+	}
+	
+	public List<ParameterDefinition> getParameterDefinitionsWithValues(){
+		ArrayList<ParameterDefinition> result = new ArrayList<ParameterDefinition>();
+		List<ParameterValue> pvs = this.getAction(ParametersAction.class).getParameters();
+		List<ParameterDefinition> pds = super.getParent().getProperty(ParametersDefinitionProperty.class).getParameterDefinitions();
+		for(ParameterDefinition pd: pds){
+			for(ParameterValue pv: pvs){
+				ParameterDefinition toBeTested = pd.copyWithDefaultValue(pv);
+				// since it's a common pattern that copyWithDefaultValue will generate a new one
+				// I'm now taking this trick
+				if(pd != toBeTested){
+					pd = toBeTested;
+					break;
+				}
+			}
+			result.add(pd);
+		}
+		
+		return result;
 	}
 	
 	/**
