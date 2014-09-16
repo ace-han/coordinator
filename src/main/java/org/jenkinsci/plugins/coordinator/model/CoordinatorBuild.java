@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,7 @@ import org.apache.commons.jelly.JellyContext;
 import org.apache.commons.jelly.JellyException;
 import org.apache.commons.jelly.Script;
 import org.apache.commons.jelly.XMLOutput;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.MetaClass;
 import org.kohsuke.stapler.QueryParameter;
@@ -156,16 +158,38 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		AtomicBuildInfo abi = new AtomicBuildInfo();
 		abi.build = retrieveTargetBuild(jobName, buildNumber);
 		if(abi.build == null){
-			String errorMsg = "Insufficient parameters to retrieve specific build, jobName: " 
-					+ jobName + " build #: "+ buildNumber;
-			LOGGER.warning(errorMsg);
-			return prepareBuildStatusErrorMessage(new IllegalArgumentException(errorMsg));
+			// Here should be those jobs that are executing not much long, say <5 seconds.
+			// They may get no chance to update its tableRow.jelly during window.setTimeout interval by some scenario
+			// I might as well give it a full scan for a try to retrieve the correct buildNumber
+			if(StringUtils.isNotEmpty(nodeId)){
+				buildNumber = tryRetrievingBuildNumber(nodeId);
+				abi.build = retrieveTargetBuild(jobName, buildNumber);
+			}
+			if(abi.build == null){
+				String errorMsg = "Insufficient parameters to retrieve specific build, jobName: " 
+						+ jobName + " build #: "+ buildNumber;
+				LOGGER.warning(errorMsg);
+				return prepareBuildStatusErrorMessage(new IllegalArgumentException(errorMsg));
+			}
 		}
 		abi.treeNode = prepareDummyTreeNode();
 		prepareTableRowIndexMap();
 		abi.tableRowIndex = this.tableRowIndexMap.get(nodeId);
 		JellyContext context = prepareJellyContextVariables(req);
 		return getBuildInfoScriptAsString(context, abi);
+	}
+
+	private int tryRetrievingBuildNumber(String nodeId) {
+		List<TreeNode> breadthList = this.getOriginalExecutionPlan().getFlatNodes(false);
+		// since all leaf nodes are in the end of the list
+		Collections.reverse(breadthList);
+		
+		for(TreeNode node: breadthList){
+			if(nodeId.equals(node.getId())){
+				return node.getBuildNumber();
+			}
+		}
+		return 0;
 	}
 
 	private TreeNode prepareDummyTreeNode() {
