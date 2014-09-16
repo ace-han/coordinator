@@ -53,58 +53,44 @@
 								<div class="clear"></div>
 							</j:forEach>
 						</div>
-						<j:choose>
-							<j:when test="${parameterized}">
-								<div id="parameterArea" class="ui-tabs-pane">
-									<f:form method="post" action="build${empty(delay)?'':'?delay='+delay}"
-										name="parameters" tableClass="parameters">
+						
+						<j:if test="${parameterized}">
+							<!-- It's a little nasty. But works fine and no duplicated j:when j:otherwise --> 
+							<j:out value="${h.xmlUnescape('&lt;div id=parameterArea class=ui-tabs-pane&gt;')}"/>
+						</j:if>
+								<f:form method="post" action="build${empty(delay)?'':'?delay='+delay}"
+										name="parameters" tableClass="parameters" target="_self">
+									<j:if test="${parameterized}">
 										<j:forEach var="parameterDefinition" items="${it.parameterDefinitions}">
 											<tbody>
 												<st:include it="${parameterDefinition}"
 											                page="${parameterDefinition.descriptor.valuePage}" optional="true"/>
 											</tbody>
 										</j:forEach>
-										<!-- !!! this section should come in as the last section for the submission parameter parsing align with backend !!! -->
-										<tbody style="display:none">
-											<f:entry title="executionPlan">
-												<div name="parameter">
-													<!-- this name's value should match the field in CoordinatorParameterDefinition.getName() -->
-													<input type="hidden" name="name" value="executionPlan" />
-													<!-- 
-														there 2 places for this input element remember to change both if any change
-														just search the word "execPlanJsonStrInput" 
-													-->
-													<input id="execPlanJsonStrInput" type="hidden" name="value" value=""/>
-												</div>
-											</f:entry>
-										</tbody>
-										<input type="hidden" name="statusCode" value="303" />
-										<input type="hidden" name="redirectTo" value="." />
-									</f:form>
-								</div>
-							</j:when>
-							<j:otherwise>
-								<f:form method="post" action="build${empty(delay)?'':'?delay='+delay}"
-										name="parameters" tableClass="parameters">
-										<tbody style="display:none">
-											<f:entry title="executionPlan">
-												<div name="parameter">
-													<!-- this name's value should match the field in CoordinatorParameterDefinition.getName() -->
-													<input type="hidden" name="name" value="executionPlan" />
-													<!-- 
-														there 2 places for this input element remember to change both if any change
-														just search the word "execPlanJsonStrInput" 
-													-->
-													<input id="execPlanJsonStrInput" type="hidden" name="value" value=""/>
-												</div>
-											</f:entry>
-										</tbody>
+									</j:if>
+									<!-- !!! this section should come in as the last section for the submission parameter parsing align with backend !!! -->
+									<tbody style="display:none">
+										<f:entry title="executionPlan">
+											<div name="parameter">
+												<!-- this name's value should match the field in CoordinatorParameterDefinition.getName() -->
+												<input type="hidden" name="name" value="executionPlan" />
+												<input id="execPlanJsonStrInput" type="hidden" name="value" value=""/>
+											</div>
+										</f:entry>
+									</tbody>
 									<input type="hidden" name="statusCode" value="303" />
-									<input type="hidden" name="redirectTo" value="." />	
+									<input type="hidden" name="redirectTo" value="." />
+									<input type="hidden" name="version" value="${it.number}" />
+									<j:if test="${it.parent.hasPermission(it.parent.BUILD)}">
+										<div style="display:none;">
+											<f:apply />
+										</div>
+									</j:if>
 								</f:form>
-							</j:otherwise>
-						</j:choose>
-						
+						<j:if test="${parameterized}">
+							<!-- It's a little nasty. But works fine and no duplicated j:when j:otherwise -->
+							<j:out value="${h.xmlUnescape('&lt;/div&gt;')}"/>
+						</j:if>
 					</div>
 				</div>
 				<div class="clear"></div>
