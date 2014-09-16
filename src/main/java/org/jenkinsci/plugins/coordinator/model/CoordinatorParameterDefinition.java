@@ -24,8 +24,11 @@ public class CoordinatorParameterDefinition extends ParameterDefinition {
 	
 	private static final long serialVersionUID = -6884384863181141230L;
 	
-	public CoordinatorParameterDefinition() {
+	private TreeNode defaultValue;
+	
+	public CoordinatorParameterDefinition(TreeNode defaultValue) {
         super(CoordinatorParameterValue.PARAM_KEY, "");
+        this.defaultValue = defaultValue;
     }
     
     public ParameterValue createValue(StaplerRequest req, JSONObject jo){
@@ -55,5 +58,12 @@ public class CoordinatorParameterDefinition extends ParameterDefinition {
     public CoordinatorParameterValue createValue(String jsonStr){
     	return new CoordinatorParameterValue(getName(), getDescription(), TreeNode.fromString(jsonStr));
     }
+
+	@Override
+	public ParameterValue getDefaultParameterValue() {
+		return new CoordinatorParameterValue(getName(), getDescription(), defaultValue);
+	}
+    
+    
 	
 }

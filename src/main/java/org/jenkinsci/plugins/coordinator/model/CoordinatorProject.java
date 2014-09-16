@@ -188,7 +188,8 @@ public class CoordinatorProject extends
             	
             }
         	List<ParameterDefinition> pds = pdp.getParameterDefinitions();
-        	CoordinatorParameterDefinition cpd = new CoordinatorParameterDefinition();
+        	CoordinatorParameterDefinition cpd = new CoordinatorParameterDefinition(
+        										getCoordinatorBuilder().getExecutionPlan().clone(true));
         	pds.add(cpd);
         	
         	super.doBuild(req, rsp, delay);
