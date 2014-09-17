@@ -81,29 +81,25 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 	}
 	
 	public List<List<? extends Action>> getReversedHistoricalActions(){
-		ArrayList<List<? extends Action>> result = new ArrayList<List<? extends Action>>(this.oldActions);
-		result.add(super.getAllActions());
+		ArrayList<List<? extends Action>> withCurrentActions = new ArrayList<List<? extends Action>>(this.oldActions);
+		withCurrentActions.add(super.getAllActions());
+		ArrayList<List<? extends Action>> result = new ArrayList<List<? extends Action>>(withCurrentActions.size());
+		for(List<? extends Action> actions: withCurrentActions){
+			// since foldCauseIntoOne make causeAction in the end of the list
+			// for ui displaying purpose, might as well doing this to ensure causeAction ahead of other actions
+			List<Action> tmp = new ArrayList<Action>(actions);
+			Action pa = null;
+	        for (Action a : tmp) {
+	            if (a instanceof ParametersAction) {
+	                tmp.remove(a);
+	                pa = a;
+	            }
+	        }
+	        tmp.add(pa);
+	        result.add(tmp);
+		}
 		Collections.reverse(result);
 		return result;
-	}
-
-	@Override
-	public void run() {
-		if (!this.oldActions.isEmpty()){
-			foldCauseIntoOne();
-		}
-		super.run();
-	}
-
-	private void foldCauseIntoOne() {
-		CauseAction curCauseAction = getAction(CauseAction.class);
-		if(curCauseAction != null ){
-			CauseAction oldCauseAction = Util.filter(this.oldActions.get(this.oldActions.size()-1), 
-														CauseAction.class).get(0);
-			
-			curCauseAction.getCauses().addAll(oldCauseAction.getCauses());
-			super.replaceAction(curCauseAction);
-		}
 	}
 
 	@Override

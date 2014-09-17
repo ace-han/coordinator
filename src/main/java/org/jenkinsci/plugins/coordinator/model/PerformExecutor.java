@@ -21,6 +21,7 @@ import hudson.model.queue.SubTask;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -72,16 +73,14 @@ public class PerformExecutor {
 	// avoid a sudden peak thread creation in memory
 	private ExecutorService executorPool;
 	
-	//private Authentication auth;
+	// for updating the buildNumber in CoordinatorParameterValue
+	private Map<String, TreeNode> parameterMap;
 	
 	public PerformExecutor(CoordinatorBuild cb, BuildListener listener, int poolSize){
 		this.coordinatorBuild = cb;
 		cb.setPerformExecutor(this);
-		
 		this.listener = listener;
 		executorPool = Executors.newFixedThreadPool(poolSize);
-		// avoid NoPermissionException if atomic job without READ permission still got trigger by this coordinator
-		//this.auth = Jenkins.getAuthentication();
 	}
 	
 	
@@ -116,7 +115,12 @@ public class PerformExecutor {
 	private void prepareExecutionPlan() {
 		CoordinatorParameterValue parameter = (CoordinatorParameterValue)this.coordinatorBuild.getAction(ParametersAction.class)
 				.getParameter(CoordinatorParameterValue.PARAM_KEY);
-		TreeNode.mergeState(this.coordinatorBuild.getOriginalExecutionPlan(), parameter.getValue());
+		TreeNode rootNode = parameter.getValue();
+		TreeNode.mergeState(this.coordinatorBuild.getOriginalExecutionPlan(), rootNode);
+		parameterMap = new HashMap<String, TreeNode>();
+		for(TreeNode node: rootNode.getFlatNodes(false)){
+			parameterMap.put(node.getId(), node);
+		}
 	}
 	
 	
@@ -360,6 +364,10 @@ public class PerformExecutor {
 			} else if (method.getName().equals("createExecutable")) {
 				AbstractBuild<?, ?> ab = (AbstractBuild<?, ?>) result;
 				this.node.setBuildNumber(ab.getNumber());
+				
+				// get the buildNumber in CoordinatorParameterValue updated respectively
+				PerformExecutor.this.parameterMap.get(node.getId()).setBuildNumber(ab.getNumber());
+				
 				if(PerformExecutor.this.executorPool.isShutdown()){
 					// the coordinator build already marked shutdown
 					ab.doStop();

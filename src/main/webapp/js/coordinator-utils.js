@@ -73,12 +73,8 @@
 		}
 	}
 	
-	window.jstreeTablization = function(treeId, options, onReadyHandler){
-		if(treeId.indexOf('#') == -1){
-			treeId = '#' + treeId;
-		}
-		
-		$(treeId).jstree(options)
+	window.jstreeTablization = function(selector, options, onReadyHandler){
+		$(selector).jstree(options)
 			.on('ready.jstree', function(){
 				var jstreeInst = $.jstree.reference(this);
 				// since prototype.js has polluted native JSON relevant methods, might as well do it here

@@ -127,7 +127,7 @@
 						$('.ui-tab-active').click();
 						
 						// from coordinator-utils.js
-						jstreeTablization('execPlan', 
+						jstreeTablization('#execPlan', 
 							{plugins: ['checkbox', 'types', 'decorators'],
 								// this combination with tie_selection set false is what ui expected
 							checkbox: {/*keep_selected_style: false, */whole_node: false, tie_selection: false},
