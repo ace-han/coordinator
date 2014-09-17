@@ -1,0 +1,78 @@
+<!-- copy from /hudson/model/ParametersAction/index.jelly -->
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
+    xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form"
+    xmlns:i="jelly:fmt" xmlns:p="/lib/hudson/project">
+	<l:layout title="${it.displayName}">
+
+		<st:include page="sidepanel.jelly" />
+		<l:main-panel>
+			<!-- since we always set it.parameterized true in CoordinatorProject -->
+			<j:set var="parameterized" value="${!empty it.parent.parameterDefinitions}"/>
+			<h1>${%Build} ${it.displayName}</h1>
+			<l:pane title="${%Parameters}" width="3">
+				<j:invokeStatic var="currentThread" className="java.lang.Thread" method="currentThread" />
+				<j:invoke var="causeActionClass" on="${currentThread.contextClassLoader}" method="loadClass">
+					<j:arg value="hudson.model.CauseAction" />
+    			</j:invoke>
+    			<j:invoke var="parametersActionClass" on="${currentThread.contextClassLoader}" method="loadClass">
+					<j:arg value="hudson.model.ParametersAction" />
+    			</j:invoke>
+				<j:forEach var="actions" items="${it.reversedHistoricalActions}">
+					<!-- since causeAction got foldInOne and now is behind parameterAction -->
+					<j:invokeStatic var="reversedActions" method="reverse" className="java.util.Collections">
+						<j:arg value="${actions}" />
+					</j:invokeStatic>
+					<j:forEach var="action" items="${reversedActions}">
+						<div>urlName: ${action.urlName}</div>
+						<j:choose>
+							<j:when test="${action.urlName == 'cause'}">
+								<div>cause: ${action}</div>
+							</j:when>
+							<j:when test="${action.urlName == 'parameters'}">
+								<div>parameters: ${action}</div>
+							</j:when>
+							<j:otherwise>
+								<div>others: <st:nbsp/></div>
+							</j:otherwise>
+						</j:choose>
+					</j:forEach>
+				</j:forEach>
+			</l:pane>
+			
+			<st:once>
+		    	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/jquery.js"></script>
+		    	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/jstree/jstree.js"></script>
+		    	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/coordinator-utils.js"></script>
+		    	<script type="text/javascript"><![CDATA[
+		    		(function jQueryNamespacing($){
+		    			$(function(){
+		    				
+		    				
+		    				$('.ui-tabs').on('click', '.ui-tabs-tab', function(e){
+		    					e.preventDefault();	// just avoid appending #xxx to the url
+								var self = $(this);
+								var tabsContext = self.closest('.ui-tabs');
+								$('.ui-tab-active', tabsContext).removeClass('ui-tab-active');
+								var targetAnchor = self.addClass('ui-tab-active').find('a[href^="#"]').attr('href');
+								if(targetAnchor){
+									$('.ui-tabs-pane', tabsContext).hide();
+									$(targetAnchor, tabsContext).show();
+									// seems jQuery way doesnot work, will have to trigger it in hudson way
+									// it's written in hudson-behavior.js#fireEvent and hudson-behavior.js#adjustSticker
+									window.fireEvent(document.getElementsByTagName('body')[0], 'scroll');
+								}
+							});
+						
+							$('.ui-tab-active').click();
+							
+		    				
+		    				// for the sake of simplicity, I would like to do this by override parameters
+		    				$('.task-link[href$="parameters"]').parent('.task').remove();
+		    			});
+		    		})(jQuery.noConflict());
+	    		]]></script>
+	    	</st:once>
+		</l:main-panel>
+  </l:layout>
+</j:jelly>

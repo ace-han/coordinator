@@ -79,6 +79,13 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 	public List<List<? extends Action>> getOldActions(){
 		return this.oldActions;
 	}
+	
+	public List<List<? extends Action>> getReversedHistoricalActions(){
+		ArrayList<List<? extends Action>> result = new ArrayList<List<? extends Action>>(this.oldActions);
+		result.add(super.getAllActions());
+		Collections.reverse(result);
+		return result;
+	}
 
 	@Override
 	public void run() {
@@ -115,8 +122,7 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 	}
 	
 	public AtomicBuildInfo getExecutionPlanInfo(){
-		prepareTableRowIndexMap();
-		return prepareAtomicBuildInfo(this.originalExecutionPlan, this.tableRowIndexMap, false);
+		return prepareAtomicBuildInfo(this.originalExecutionPlan);
 	}
 
 	private void prepareTableRowIndexMap() {
@@ -238,10 +244,8 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 				+ "<div class='jstree-table-col lastDuration'>Server side error. Please checkout the server log</div></div>";
 	}
 
-	protected AtomicBuildInfo prepareAtomicBuildInfo(TreeNode node, Map<String, Integer> tableRowIndexMap, boolean simpleMode){
-		if(simpleMode && !node.getState().checked){
-			return null; // save the time
-		}
+	public AtomicBuildInfo prepareAtomicBuildInfo(TreeNode node){
+		prepareTableRowIndexMap();
 		AtomicBuildInfo abi = new AtomicBuildInfo();
 		abi.treeNode = node;
 		abi.tableRowIndex = tableRowIndexMap.get(node.getId());
@@ -251,10 +255,8 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		} 
 		abi.children = new ArrayList<AtomicBuildInfo>(children.size());
 		for(TreeNode child: children){
-			AtomicBuildInfo abiChild = prepareAtomicBuildInfo(child, tableRowIndexMap, simpleMode);
-			if(abiChild != null){
-				abi.children.add(abiChild);
-			}
+			AtomicBuildInfo abiChild = prepareAtomicBuildInfo(child);
+			abi.children.add(abiChild);
 		}
 		return abi;
 	}
