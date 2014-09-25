@@ -1,0 +1,26 @@
+<!-- it's included in org/jenkinsci/plugins/coordinator/model/CoordinatorProject/configure-entries.jelly -->
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" 
+	xmlns:st="jelly:stapler" 
+	xmlns:d="jelly:define"
+	xmlns:l="/lib/layout" 
+	xmlns:t="/lib/hudson" 
+	xmlns:f="/lib/form"
+	xmlns:p="/lib/hudson/project">
+	<li data-jstree='{"opened": ${it.state.opened}, "selected": ${it.state.selected}, "disabled":${it.state.disabled}, "checked": ${it.state.checked}, "type": "${it.type}"}'
+		id="${it.id}">
+		<j:choose>
+			<j:when test="${empty it.children}">
+				<a class="model-link" href="${rootURL}/job/${it.text}/">${it.text}</a>
+			</j:when>
+			<j:otherwise>
+				${it.text}
+			</j:otherwise>
+		</j:choose>
+		<j:forEach var="node" items="${it.children}">
+			<ul>
+				<st:include it="${node}" page="config.jelly"/>
+			</ul>
+		</j:forEach>
+	</li>
+</j:jelly>

@@ -7,3 +7,6 @@
 /target
 /.classpath
 /.project
+/work
+/.settings
+/src/main/java/rebel.xml

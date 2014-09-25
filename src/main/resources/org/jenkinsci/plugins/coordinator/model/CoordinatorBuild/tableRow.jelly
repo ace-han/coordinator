@@ -1,0 +1,55 @@
+<!-- it's included in org/jenkinsci/plugins/coordinator/model/CoordinatorProject/configure-entries.jelly -->
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" 
+	xmlns:st="jelly:stapler" 
+	xmlns:d="jelly:define"
+	xmlns:l="/lib/layout" 
+	xmlns:t="/lib/hudson" 
+	xmlns:f="/lib/form"
+	xmlns:i="jelly:fmt"
+	xmlns:p="/lib/hudson/project">
+	
+	<j:set var="build" value="${it.build}"/>
+	<j:choose>
+		<j:when test="${it.tableRowIndex %2 == 0}">
+			<j:set var="tableRowClass" value="jstree-table-row jstree-table-row-even"/>
+		</j:when>
+		<j:otherwise>
+			<j:set var="tableRowClass" value="jstree-table-row jstree-table-row-odd"/>
+		</j:otherwise>
+	</j:choose>
+	<j:choose>
+		<j:when test="${empty it.treeNode.children}">
+			<div class="jstree-wholerow ${tableRowClass}">
+				<j:choose>
+					<j:when test="${empty build}">
+						<div class="jstree-table-col jobStatus"><st:nbsp/></div>
+						<div class="jstree-table-col lastDuration">N/A</div>
+						<div class="jstree-table-col lastLaunch">N/A</div>
+						<div class="jstree-table-col buildNumber">#</div>
+					</j:when>
+					<j:otherwise>
+						<div class="jstree-table-col jobStatus">
+							<st:include it="${build}" page="buildStatus.jelly"
+								class="org.jenkinsci.plugins.coordinator.model.CoordinatorBuild"/>
+						</div>
+						<div class="jstree-table-col lastDuration">
+							${build.durationString}
+						</div>
+						<div class="jstree-table-col lastLaunch">
+							<i:formatDate value="${build.timestamp.time}" pattern="yyyy-MM-dd HH:mm:ss Z" />	
+						</div>
+						<div class="jstree-table-col buildNumber">
+							<a href="${rootURL + '/' + build.url}" class="model-link buildNumberLink">${build.number}</a>
+						</div>
+					</j:otherwise>
+				</j:choose>
+				<div class="clear"></div>
+			</div>
+		</j:when>
+		<j:otherwise>
+			<!-- to avoid jstree include this .jstree-table-row into generated <a/> -->
+			<div class="jstree-wholerow ${tableRowClass}"></div>
+		</j:otherwise>
+	</j:choose>
+</j:jelly>

@@ -1,0 +1,69 @@
+<!-- 
+	it's overrided as below 
+	hudson/model/Job/configure.jelly
+	-> hudson/model/Project/configure.jelly
+	Config page 
+	
+	for the builders part, writing like that just to keep the same convention in builder's config.jelly file
+	
+	for the builders part, plz refer to /lib/hudson/project/config-builders.jelly and /lib/form/hetero-list.jelly
+-->
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" 
+	xmlns:st="jelly:stapler" 
+	xmlns:d="jelly:define" 
+	xmlns:l="/lib/layout" 
+	xmlns:t="/lib/hudson" 
+	xmlns:f="/lib/form" 
+	xmlns:p="/lib/hudson/project">
+	<st:include page="configure-common.jelly" />
+
+	<p:config-trigger>
+    	<p:config-upstream-pseudo-trigger />
+	</p:config-trigger>
+
+	<p:config-buildWrappers />
+	<f:section title="${%Build}">
+		<f:block>
+				<j:forEach var="builder" items="${it.builders}">
+					<j:set var="descriptor" value="${builder.descriptor}" />
+					<div name="builder" class="" descriptorId="${descriptor.id}">
+						<table style="width:100%">
+							<j:set var="help" value="${descriptor.helpFile}" />
+							<tr>
+								<td colspan="3">
+									<div>
+										<b>${descriptor.displayName}</b>
+									</div>
+								</td>
+								<j:if test="${help!=null}">
+									<td>
+										<a href="#" class="help-button" helpURL="${rootURL}${help}"><img src="${imagesURL}/16x16/help.png" alt="[help]" height="16" width="16"/></a>
+									</td>
+								</j:if>
+							</tr>
+						    <!-- TODO: help support is unintuitive; people should be able to see help from drop-down menu -->
+						    <j:if test="${help!=null}">
+								<f:helpArea />
+						    </j:if>
+							<j:set var="instance" value="${builder}"/>
+							<st:include from="${descriptor}" page="${descriptor.configPage}"/>
+						
+							<f:block>
+								<div align="right">
+									<input type="hidden" name="stapler-class" value="${descriptor.clazz.name}" />
+								</div>
+							</f:block>
+						</table>
+						<input type="hidden" name="kind" value="${descriptor.id}" />
+					</div>
+			      </j:forEach>
+			      
+			      <!-- keep hetero-list.js workable -->
+			      <div class="repeatable-insertion-point" />
+			      
+		</f:block>
+	</f:section>
+
+	<p:config-publishers2 />
+</j:jelly>
