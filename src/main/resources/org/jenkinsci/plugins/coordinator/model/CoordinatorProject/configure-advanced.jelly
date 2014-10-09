@@ -1,0 +1,10 @@
+<!--
+  it's defined in hudson/model/AbstractItem/configure-common.jelly
+     -> <st:include page="configure-advanced.jelly" optional="true" />
+  since it's optional and hudson/model/Project does not provide configure-advanced.jelly
+  we might as well copy it from hudson/model/FreeStyleProject/configure-advanced.jelly
+-->
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:p="/lib/hudson/project">
+  <p:config-customWorkspace />
+</j:jelly>

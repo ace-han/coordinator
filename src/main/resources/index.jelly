@@ -1,0 +1,6 @@
+<?jelly escape-by-default='true'?>
+<!-- this page could not involve any i18n feature, otherwise an error will be thrown -->
+<div>
+	This plugin acts like a coordinator that makes other jobs to build in a particular sequence as pre-defined.<br/>
+	There are serial and parallel building patterns, which should have already covered most scenarios 
+</div>

@@ -1,0 +1,30 @@
+<!-- it's included in org/jenkinsci/plugins/coordinator/model/CoordinatorProject/configure-entries.jelly -->
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" 
+	xmlns:st="jelly:stapler" 
+	xmlns:d="jelly:define"
+	xmlns:l="/lib/layout" 
+	xmlns:t="/lib/hudson" 
+	xmlns:f="/lib/form"
+	xmlns:p="/lib/hudson/project">
+	<j:set var="node" value="${it.treeNode}"/>
+	<li data-jstree='{"opened": ${node.state.opened}, "selected": ${node.state.selected}, "disabled":${node.state.disabled}, "checked": ${node.state.checked}, "type": "${node.type}"}'
+		id="${node.id}">
+
+		<st:include page="tableRow.jelly" class="org.jenkinsci.plugins.coordinator.model.CoordinatorBuild" />
+		<j:choose>
+			<j:when test="${empty node.children}">
+				<a class="model-link" href="${rootURL}/job/${node.text}/">${node.text}</a>
+			</j:when>
+			<j:otherwise>
+				<a>${node.text}</a>
+			</j:otherwise>
+		</j:choose>
+		<j:forEach var="node" items="${it.children}">
+			<ul>
+				<st:include it="${node}" page="tablized.jelly"
+					class="org.jenkinsci.plugins.coordinator.model.CoordinatorBuild" />
+			</ul>
+		</j:forEach>
+	</li>
+</j:jelly>
