@@ -20,6 +20,15 @@
 			<name>Ace Han</name>
 			<email>ace.jl.han@gmail.com</email>
 		</developer>
+		<developer>
+			<id>kymair</id>
+			<name>Jindi Wu</name>
+			<email>kymair@gmail.com</email>
+		</developer>
+		<developer>
+			<id>rodrigozrusso</id>
+			<name>Rodrigo Russo</name>
+		</developer>
 	</developers>
 
 	<scm>
