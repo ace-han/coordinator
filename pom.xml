@@ -39,11 +39,11 @@
 	</developers>
 
 	<scm>
-		<connection>scm:git:https://github.com/ace-han/coordinator.git</connection>
-		<developerConnection>scm:git:https://github.com/ace-han/coordinator.git</developerConnection>
-		<url>https://github.com/ace-han/coordinator</url>
-	  <tag>coordinator-1.0.0</tag>
-  </scm>
+		<connection>scm:git:https://github.com/jenkinsci/coordinator-plugin.git</connection>
+		<developerConnection>scm:git:https://github.com/jenkinsci/coordinator-plugin.git</developerConnection>
+		<url>https://github.com/jenkinsci/coordinator-plugin</url>
+	  	<tag>HEAD</tag>
+  	</scm>
 	<!-- save the effort that configuration in %MAVEN_HOME%/conf/settings.xml -->
 	<repositories>
 		<repository>
