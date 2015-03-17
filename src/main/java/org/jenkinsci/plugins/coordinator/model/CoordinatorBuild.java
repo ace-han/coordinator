@@ -48,7 +48,11 @@ import org.kohsuke.stapler.jelly.JellyClassTearOff;
 
 public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild> {
 	
-	private List<List<? extends Action>> oldActions = new ArrayList<List<? extends Action>>();
+	// fixes #4, Histories will get flushed and keep the last triggered build info after jenkins instance restart
+	// if we initialize it in the constructor, 
+	// it will flush what was already got unmarshaled from disk build.xml
+	// hierarchy CoordinatorBuild -> Build -> AbstractBuild -> Run#reload()#getDataFile().unmarshal(this)
+	private List<List<? extends Action>> oldActions;
 
 	private transient PerformExecutor performExecutor;
 	
@@ -77,11 +81,14 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 	}
 	
 	public List<List<? extends Action>> getOldActions(){
+		if(this.oldActions == null){
+			this.oldActions = new ArrayList<List<? extends Action>>();
+		}
 		return this.oldActions;
 	}
 	
 	public List<List<? extends Action>> getReversedHistoricalActions(){
-		ArrayList<List<? extends Action>> withCurrentActions = new ArrayList<List<? extends Action>>(this.oldActions);
+		ArrayList<List<? extends Action>> withCurrentActions = new ArrayList<List<? extends Action>>(this.getOldActions());
 		withCurrentActions.add(super.getAllActions());
 		ArrayList<List<? extends Action>> result = new ArrayList<List<? extends Action>>(withCurrentActions.size());
 		for(List<? extends Action> actions: withCurrentActions){
