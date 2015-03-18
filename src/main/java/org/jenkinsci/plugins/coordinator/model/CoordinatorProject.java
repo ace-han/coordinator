@@ -1,8 +1,11 @@
 package org.jenkinsci.plugins.coordinator.model;
 
 import hudson.Extension;
+import hudson.model.Cause;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
+import hudson.model.ParameterValue;
+import hudson.model.ParametersAction;
 import hudson.model.TopLevelItem;
 import hudson.model.Descriptor;
 import hudson.model.ParameterDefinition;
@@ -151,7 +154,7 @@ public class CoordinatorProject extends
         		throw FormValidation.error("invalid version in the request");
         	}
         	
-        	// too make rsp as an Response that won't do anything as sendRedirect is invoked...
+        	// make rsp as an Response that won't do anything as sendRedirect is invoked...
         	rsp = (StaplerResponse) Proxy.newProxyInstance(rsp.getClass().getClassLoader(), rsp.getClass().getInterfaces(), 
         			new InvocationHandler(){
 
@@ -171,7 +174,7 @@ public class CoordinatorProject extends
         ParametersDefinitionProperty pdp = super.getProperty(ParametersDefinitionProperty.class);
         boolean emptyPdp = (pdp == null);
         // below will always goes to pp._doBuild(xxx), should be quick enough
-        synchronized(this.properties){
+        synchronized(super.properties){
         	// some patch up
         	if(emptyPdp){
         		final CoordinatorProject cowner = this;
@@ -179,11 +182,13 @@ public class CoordinatorProject extends
 
             		public void _doBuild(StaplerRequest req, StaplerResponse rsp, 
             				@QueryParameter TimeDuration delay) throws IOException, ServletException {
-            			this.owner = cowner;
+            			this.owner = cowner;	// avoid empty owner on ParametersDefinitionProperty
             			super._doBuild(req, rsp, delay);
             		}
             		
             	};
+            	// since it would finally get to AbstractProject.getProperty(ParametersDefinitionProperty.class)
+            	// so super.properties.add(pdp) is necessary
             	super.properties.add(pdp);
             	
             }
@@ -194,7 +199,7 @@ public class CoordinatorProject extends
         	
         	super.doBuild(req, rsp, delay);
         	
-        	// some clean up
+        	// it's always a best practice to do some clean up after hijacking
         	pds.remove(cpd);
         	if(emptyPdp){
         		 super.properties.remove(pdp);
@@ -278,4 +283,36 @@ public class CoordinatorProject extends
 		}
 	}
 
+	/**
+	 * For TimerTrigger(Schedule Job) Supported
+	 */
+	@Override
+	public boolean scheduleBuild(int quietPeriod, Cause c) {
+		List<ParameterValue> values = getDefaultParameterValues(true);
+		return scheduleBuild2(quietPeriod, c, new ParametersAction(values))!=null;
+	}
+	
+	/**
+	 * 
+	 * @return defaultParameterValues for this project
+	 */
+	protected List<ParameterValue> getDefaultParameterValues(boolean withCoordinatorParameterValue) {
+		ArrayList<ParameterValue> values;
+		ParametersDefinitionProperty pp = getProperty(ParametersDefinitionProperty.class);
+		if(pp == null){
+			values = new ArrayList<ParameterValue>(2);
+		} else{
+			List<ParameterDefinition> pds = pp.getParameterDefinitions();
+			values = new ArrayList<ParameterValue>(pds.size() + 1);
+			for(ParameterDefinition pd: pds){
+				values.add(pd.getDefaultParameterValue());
+			}
+		}
+		if (withCoordinatorParameterValue){
+			CoordinatorParameterDefinition cpd = new CoordinatorParameterDefinition(
+					getCoordinatorBuilder().getExecutionPlan().clone(true));
+			values.add(cpd.getDefaultParameterValue());
+		}
+		return values;
+	}
 }
