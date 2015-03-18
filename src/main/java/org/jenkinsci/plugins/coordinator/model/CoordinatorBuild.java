@@ -77,7 +77,7 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
     }
 
 	public void addOldActions(List<? extends Action> oldActions) {
-		this.oldActions.add(oldActions);
+		this.getOldActions().add(oldActions);
 	}
 	
 	public List<List<? extends Action>> getOldActions(){
@@ -124,6 +124,10 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		this.performExecutor = performExecutor;
 	}
 	
+	/**
+	 *  currently being invoked in *.jelly file 
+	 * @return
+	 */
 	public AtomicBuildInfo getExecutionPlanInfo(){
 		return prepareAtomicBuildInfo(this.originalExecutionPlan);
 	}
@@ -145,6 +149,10 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 			return JSONNull.getInstance();
 		}
 		Set<Entry<String, AbstractBuild<?, ?>>> entrySet = this.performExecutor.getActiveBuildMap().entrySet();
+		// since every http request is state-less, and doXXX is catering that tableRowIndexMap may not get initialized
+		// we need to ensure that we are not geting an empty tableRowIndexMap
+		this.prepareTableRowIndexMap();
+		
 		Map<String, String> result = new HashMap<String, String>(entrySet.size()*2 + 3);
 		TreeNode dummyNode = prepareDummyTreeNode();
 		JellyContext context = prepareJellyContextVariables(req);
@@ -154,8 +162,7 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 			abi.build = build;
 			abi.treeNode = dummyNode;	// just taking advantage of tableRow.jelly
 			
-			// usually this is intermediate after getExecutionPlanInfo()
-			// consider the index is still okay to indicate
+			// already got initialized by prepareTableRowIndexMap()
 			abi.tableRowIndex = this.tableRowIndexMap.get(entry.getKey()); 
 			result.put(entry.getKey(), getBuildInfoScriptAsString(context, abi));
 		}
