@@ -31,6 +31,11 @@
 		</developer>
 	</developers>
 
+	<issueManagement>
+	    <system>Github</system>
+	    <url>https://github.com/jenkinsci/coordinator-plugin/issues</url>
+  	</issueManagement>
+  
 	<scm>
 		<connection>scm:git:https://github.com/jenkinsci/coordinator-plugin.git</connection>
 		<developerConnection>scm:git:https://github.com/jenkinsci/coordinator-plugin.git</developerConnection>
