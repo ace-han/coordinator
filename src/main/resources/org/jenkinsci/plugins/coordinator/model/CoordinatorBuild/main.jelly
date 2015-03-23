@@ -277,9 +277,6 @@
 							var jsonString = Object.toJSON(rootNode);
 							$('#execPlanJsonStrInput').val(jsonString);
 	    				});
-	    				
-	    				// for the sake of simplicity, I would like to do this by override parameters
-	    				$('.task-link[href$="parameters"]').attr('href', location.href+'histories').text('Histories');
 	    			});
 	    		})(jQuery.noConflict());
 	    	]]></script>
