@@ -67,8 +67,10 @@
 	width: 10%;
 }
 
+/*ref #6 should work on those resolution > 980px */
 .jstree-default .lastLaunch {
 	width: 16%;
+	min-width: 160px;
 }
 
 .jstree-default .buildNumber {
