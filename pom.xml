@@ -115,7 +115,21 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-javadoc-plugin</artifactId>
-				<!-- version specified in parent pom -->
+				<!-- 
+					fix failure on jdk8  
+					according to http://stackoverflow.com/questions/15886209/maven-is-not-working-in-java-8-when-javadoc-tags-are-incomplete
+				-->
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+						<goal>jar</goal>
+						</goals>
+						<configuration>
+						<additionalparam>-Xdoclint:none</additionalparam>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
