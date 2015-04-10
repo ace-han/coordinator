@@ -21,3 +21,19 @@ mvn dependency:sources
 mvn dependency:resolve -Dclassifier=javadoc
 
 mvn clean
+
+# doc in https://wiki.jenkins-ci.org/display/JENKINS/Hosting+Plugins
+# diff account settings use below, in  ~/.m2/settings.xml or $MAVEN_HOME/conf/settings.xml
+  <servers>
+    <server>
+      <id>maven.jenkins-ci.org</id> <!-- For parent 1.397 or newer; before this use id java.net-m2-repository -->
+      <username>ace_jl_han</username>  
+      <password>regular_freq_simple_ones</password> 
+    </server>
+  </servers>
+
+# Do not split that Maven command into two separate Maven invocations (i. e. mvn release:prepare followed by mvn release:perform): It won't work as you expect and will mess up your release. Always execute the two Maven goals together, in one command.
+# for simplicity, just directly put github account crefidentials in -Dusername=... -Dpassword=...
+
+mvn release:prepare release:perform -Dusername=... -Dpassword=...
+
