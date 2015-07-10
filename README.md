@@ -13,7 +13,7 @@ Jenkins has various ways to configure jobs execution order, such as built-in tri
 1. Trigger the master job, select which steps to run and start. Then you can monitor the over status within the single page.
 
 ## Demo
-http://jenkins.unendedquest.com/job/Coordinator%20Test%20Job/
+http://jenkins.unendedquest.com/view/Coordinators/
 
 ## Author
 [Ace Han](https://github.com/ace-han)
