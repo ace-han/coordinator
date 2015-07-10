@@ -12,6 +12,9 @@ Jenkins has various ways to configure jobs execution order, such as built-in tri
 1. Create a new job of type _Coordinator Project_. ,include those jobs defined in step 1, specify the execution order, group some of them under same tree node to parallel run; 
 1. Trigger the master job, select which steps to run and start. Then you can monitor the over status within the single page.
 
+## Demo
+http://jenkins.unendedquest.com/job/Coordinator%20Test%20Job/
+
 ## Author
 [Ace Han](https://github.com/ace-han)
 
