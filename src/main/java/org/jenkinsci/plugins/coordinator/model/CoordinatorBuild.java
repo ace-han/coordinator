@@ -284,17 +284,14 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		ArrayList<ParameterDefinition> result = new ArrayList<ParameterDefinition>();
 		List<ParameterValue> pvs = this.getAction(ParametersAction.class).getParameters();
 		List<ParameterDefinition> pds = super.getParent().getProperty(ParametersDefinitionProperty.class).getParameterDefinitions();
-		for(ParameterDefinition pd: pds){
-			for(ParameterValue pv: pvs){
-				ParameterDefinition toBeTested = pd.copyWithDefaultValue(pv);
-				// since it's a common pattern that copyWithDefaultValue will generate a new one
-				// I'm now taking this trick
-				if(pd != toBeTested){
-					pd = toBeTested;
-					break;
-				}
-			}
-			result.add(pd);
+		
+		// fix #12, Execution parameter values display disorder
+		for(int i=0; i<pds.size(); i++){
+			// based on index is okay for simplicity sake
+			ParameterDefinition pd = pds.get(i);
+			ParameterValue pv = pvs.get(i);
+			ParameterDefinition pdWithValue = pd.copyWithDefaultValue(pv);
+			result.add(pdWithValue);
 		}
 		
 		return result;
