@@ -245,6 +245,9 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
         Functions.initPageVariables(context);
         // this variable is needed to make "jelly:fmt" taglib work correctly
         context.setVariable("org.apache.commons.jelly.tags.fmt.locale",req.getLocale());
+        // context.setVariable("timezone", jsDetectedTimezone);
+        // http://stackoverflow.com/questions/3001260/how-to-detect-client-timezone
+        // unless there is a global setting explicitly set
 		return context;
 	}
 
