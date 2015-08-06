@@ -3,6 +3,10 @@
 ## About
 Coordinator is a Jenkins plugin to let the user create _master_ job to include other ordinary jobs as build steps.
 
+Build steps(job dependencies) could be categorized into *Serial* <img src="https://raw.githubusercontent.com/jenkinsci/coordinator-plugin/master/src/main/webapp/images/coordinator-serial.ico" width="16"> and *Parallel* <img src="https://raw.githubusercontent.com/jenkinsci/coordinator-plugin/master/src/main/webapp/images/coordinator-parallel.ico" width="16"> patterns
+
+And we think these two patterns should cover almost every generic scenario.
+
 ## Rationale
 
 Jenkins has various ways to configure jobs execution order, such as built-in trigger _Build after other projects are built_, post-build action _Build other projects_ and plenty of plugins. However, if you want to leverage Jenkins not only as a CI tool, but a sophisticated deployment platform, you will still miss the fine-grained build steps control seen in other product such as BuildForge. 
