@@ -14,7 +14,7 @@
 			<link rel="stylesheet" href="${rootURL}/plugin/coordinator/js/jstree/themes/default/style.min.css" />
 			<link rel="stylesheet" href="${rootURL}/plugin/coordinator/css/jstree-customized.css" />
 			<link rel="stylesheet" href="${rootURL}/plugin/coordinator/css/tabs.css" />
-		
+
 			<div class="behavior-loading">${%LOADING}</div>
 			<h1>${it.pronoun} ${it.displayName}</h1>
 			<p>${%description}</p>
@@ -50,7 +50,7 @@
 										<st:include it="${builder.executionPlan}" page="config.jelly"/>
 					        		</ul>
 					        	</div>
-								<div class="clear"></div>
+								<div class="clear2"></div>
 							</j:forEach>
 						</div>
 						
@@ -93,7 +93,7 @@
 						</j:if>
 					</div>
 				</div>
-				<div class="clear"></div>
+				<div class="clear2"></div>
 				
 				<!-- below copy from /lib/form/bottomButtonBar.jelly, /lib/form/submit.jelly -->
 				<j:choose>

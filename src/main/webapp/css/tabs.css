@@ -1,5 +1,9 @@
-.clear {clear:both; font-size:1px; visibility:hidden;}
-				
+.clear2 {clear:both; font-size:1px; visibility:hidden;}
+
+#side-panel {
+	position: absolute;
+}
+
 /*ui-tabs css*/
 .ui-tabs{
 	padding: 1em;
@@ -41,13 +45,13 @@
 }
 
 .ui-tabs .ui-tabs-content{
-	width:100%; 
+	width:100%;
 	border: 1px solid #BBB;
 	clear: both;
 }
 
 .ui-tabs .ui-tabs-pane{
-	width:100%; 
+	width:100%;
 	display:none;
 }
 
