@@ -115,19 +115,12 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-javadoc-plugin</artifactId>
-				<!-- 
-					fix failure on jdk8  
-					according to http://stackoverflow.com/questions/15886209/maven-is-not-working-in-java-8-when-javadoc-tags-are-incomplete
-				-->
 				<executions>
 					<execution>
 						<id>attach-javadocs</id>
 						<goals>
-						<goal>jar</goal>
+							<goal>jar</goal>
 						</goals>
-						<configuration>
-						<additionalparam>-Xdoclint:none</additionalparam>
-						</configuration>
 					</execution>
 				</executions>
 			</plugin>
@@ -137,4 +130,28 @@
 			</plugin>
 		</plugins>
 	</build>
+	<profiles>
+		<profile>
+		    <id>doclint-java8-disable</id>
+		    <activation>
+				<jdk>[1.8,)</jdk>
+			</activation>
+		    <build>
+		    	<plugins>
+					<plugin>
+					    <artifactId>maven-javadoc-plugin</artifactId>
+					    <configuration>
+					    	<!-- 
+								fix failure on jdk8  
+								according to http://stackoverflow.com/questions/15886209/maven-is-not-working-in-java-8-when-javadoc-tags-are-incomplete
+								
+								fix #21, CloudBees CI failed due to unrecognized param -Xdoclint:none for maven-javadoc-plugin
+							-->
+					    	<additionalparam>-Xdoclint:none</additionalparam>
+					    </configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>
