@@ -50,7 +50,7 @@
 			if(!nodes || !nodes.length){
 				var nodes = jstreeInst.get_json(null, {no_data: true, no_state: true, flat: true});
 			}
-			var container = jstreeInst.get_original_container_html();
+			var container = jstreeInst.get_container(); // using standard api instead of the one from decorator plugin
 			$.each(nodes, function(i, node){
 				if(node.type!=='leaf'){
 					return true;
