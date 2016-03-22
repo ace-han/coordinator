@@ -1,4 +1,4 @@
-# Jenkins Coordinator Plugin
+# Jenkins Coordinator Plugin [![Build Status](https://jenkins.ci.cloudbees.com/buildStatus/icon?job=plugins/coordinator-plugin)](https://jenkins.ci.cloudbees.com/job/plugins/job/coordinator-plugin/)
 
 ## About
 Coordinator is a Jenkins plugin to let the user create _master_ job to include other ordinary jobs as build steps.
