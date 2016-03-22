@@ -28,21 +28,22 @@
 			// <selector, handler(node, targetElem)> 
 	};
 	
-	// it would keep selected elements under each <li/> persists
+	// options=> a map for <selector, handler>
 	$.jstree.plugins.decorators = function (options, parent) {
 		this.bind = function(){
 			parent.bind.call(this);
 			this.element
 				.on('loading.jstree', jQuery.proxy(function (e, data){
 					// patch up for the root node
-					this._data.core.original_container_html = $('<ul/>').append(this._data.core.original_container_html);
+					this._data.core.original_container_html = $('<ul/>').append(this._get_original_container_html());
 				}, this))
 		};
 		
 		this.redraw_node = function(obj, deep, is_callback) {
-			obj = parent.redraw_node.call(this, obj, deep, is_callback);
-			if(options){
-				var liContainer = this._data.core.original_container_html.find('#' + obj.id);
+			// follow the new style with apply arguments in jstree.js
+			obj = parent.redraw_node.apply(this, arguments);
+			if(!$.isEmptyObject(options)){
+				var liContainer = this._get_original_container_html().find('#' + obj.id);
 				for(var selector in options){
 					// I currently restrict this on children level
 					var targetElem = liContainer.children(selector).clone(true);
@@ -57,7 +58,8 @@
 		};
 		
 		this.update_redraw_template = function(nodeId, selector, newTemplate){
-			var liContainer = this._data.core.original_container_html.find('#' + nodeId);
+			// for ajax polling template(newTemplate) to redraw
+			var liContainer = this._get_original_container_html().find('#' + nodeId);
 			// I currently restrict this on children level
 			var targetElem = liContainer.children(selector).remove();
 			var handler = options[selector];
@@ -68,7 +70,8 @@
 			this.redraw_node(nodeId);
 		}
 		
-		this.get_original_container_html = function(){
+		// add "_" prefix for marking this function a private function
+		this._get_original_container_html = function(){
 			return this._data.core.original_container_html;
 		}
 	}
