@@ -1,12 +1,15 @@
 package org.jenkinsci.plugins.coordinator.model;
 
 import hudson.Extension;
+import hudson.model.Action;
 import hudson.model.Cause;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.ParameterValue;
 import hudson.model.ParametersAction;
 import hudson.model.TopLevelItem;
+import hudson.model.Cause.LegacyCodeCause;
+import hudson.model.queue.QueueTaskFuture;
 import hudson.model.Descriptor;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParametersDefinitionProperty;
@@ -29,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Future;
 import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
@@ -44,6 +48,8 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+
+import com.infradna.tool.bridge_method_injector.WithBridgeMethods;
 
 
 @SuppressWarnings({ "unchecked" })
@@ -292,6 +298,24 @@ public class CoordinatorProject extends
 		return scheduleBuild2(quietPeriod, c, new ParametersAction(values))!=null;
 	}
 	
+	/**
+	 * For Test Case
+	 */
+	@SuppressWarnings("deprecation")
+    @WithBridgeMethods(Future.class)
+    public QueueTaskFuture<CoordinatorBuild> scheduleBuild2(int quietPeriod) {
+		LegacyCodeCause cause = new LegacyCodeCause();
+        return scheduleBuild2(quietPeriod, cause);
+    }
+	
+	/**
+     * For Test Case
+     */
+    @WithBridgeMethods(Future.class)
+    public QueueTaskFuture<CoordinatorBuild> scheduleBuild2(int quietPeriod, Cause c) {
+    	List<ParameterValue> values = getDefaultParameterValues(true);
+        return scheduleBuild2(quietPeriod, c, new ParametersAction(values));
+    }
 	/**
 	 * 
 	 * @return defaultParameterValues for this project
