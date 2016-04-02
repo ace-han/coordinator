@@ -110,7 +110,7 @@
 					// handle the toBeFinishedList for the very last time
 					$.each(toBeFinishedList, function(i, nodeId){
 						// extract the job name and build number from original_container_html
-						var liContainer = jstreeInst.get_original_container_html().find('#'+nodeId);
+						var liContainer = jstreeInst.get_container().find('#'+nodeId); // using standard api instead of the one from decorator plugin
 						var jobName = liContainer.children('.model-link').text();
 						var buildNumber = liContainer.find('.buildNumberLink').text();
 
