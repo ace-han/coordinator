@@ -111,11 +111,11 @@
 
 					// handle the toBeFinishedList for the very last time
 					$.each(toBeFinishedList, function(i, nodeId){
-						// extract the job name and build number from original_container_html
-						var liContainer = jstreeInst.get_container().find('#'+nodeId);
+						// extract the job name and build number from get_container
+						var liContainer = jstreeInst.get_container().find('#'+nodeId); // using standard api instead of the one from decorator plugin
 						var jobName = liContainer.children('.model-link').text();
 						var buildNumber = liContainer.find('.buildNumberLink').text();
-
+						
 						// trigger an ajax call to retrieve the generated tableRow.jelly
 						(function(nodeId, jobName, buildNumber){
 							$.get('atomicBuildResultTableRowHtml',
