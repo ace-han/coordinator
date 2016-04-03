@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<org.jenkinsci.plugins.coordinator.model.CoordinatorProject plugin="coordinator@1.2.0-SNAPSHOT">
+<org.jenkinsci.plugins.coordinator.model.CoordinatorProject>
   <actions/>
   <description></description>
   <keepDependencies>false</keepDependencies>
