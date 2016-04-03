@@ -158,6 +158,8 @@
               <selected>false</selected>
               <checked>true</checked>
               <undetermined>false</undetermined>
+              <breaking>false</breaking>
+              <execPattern>serial</execPattern>
             </state>
             <buildNumber>0</buildNumber>
           </org.jenkinsci.plugins.coordinator.model.TreeNode>
