@@ -74,7 +74,8 @@ public class PerformExecutor {
 	// avoid a sudden peak thread creation in memory
 	private ExecutorService executorPool;
 	
-	// for updating the buildNumber in CoordinatorParameterValue
+	// for updating the buildNumber in CoordinatorParameterValue to display in history page
+	// so as request parameter need to be updated
 	private Map<String, TreeNode> parameterMap;
 	
 	public PerformExecutor(CoordinatorBuild cb, BuildListener listener, int poolSize){
@@ -122,13 +123,16 @@ public class PerformExecutor {
 		TreeNode requestRootNode = parameter.getValue();
 		TreeNode buildRootNode = this.coordinatorBuild.getOriginalExecutionPlan();
 		TreeNodeUtils.mergeState4Execution(buildRootNode, requestRootNode);
+		
+		// parameterMap for display build number in history page
 		parameterMap = new HashMap<String, TreeNode>();
+		for(TreeNode node: TreeNodeUtils.getFlatNodes(requestRootNode, false)){
+			parameterMap.put(node.getId(), node);
+		}
 		
 		TreeNodeUtils.preOrderTraversal(buildRootNode, new TraversalHandler(){
-
 			@Override
 			public void doTraversal(TreeNode node) {
-				parameterMap.put(node.getId(), node);
 				if(!node.isLeaf()){
 					prepareParentChildrenMap(node, node.shouldChildrenParallelRun());
 				}
