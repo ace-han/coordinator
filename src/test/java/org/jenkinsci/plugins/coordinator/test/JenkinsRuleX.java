@@ -2,10 +2,15 @@ package org.jenkinsci.plugins.coordinator.test;
 
 import java.io.File;
 import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.jvnet.hudson.test.FailureBuilder;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.SleepBuilder;
 
 import hudson.Functions;
+import hudson.model.FreeStyleProject;
 
 /**
  * Please refer to 
@@ -40,4 +45,31 @@ public class JenkinsRuleX extends JenkinsRule {
             aConnection.setDefaultUseCaches(origDefaultUseCache);
         }
     }
+    
+    
+    protected List<FreeStyleProject> prepareSleepJobs(String[] jobNames, long milliseconds) throws Throwable  {
+		List<FreeStyleProject> result = new ArrayList<FreeStyleProject>();
+//		Jenkins jenkins = this.getInstance();
+		for(String name: jobNames){
+			FreeStyleProject job = this.createFreeStyleProject(name);
+			job.getBuildersList().replace(new SleepBuilder(milliseconds));
+//			job = spy(job);
+//			jenkins.putItem(job);
+			result.add(job);
+		}
+		return result;
+	}
+
+	protected List<FreeStyleProject> prepareFailureJobs(String[] jobNames) throws Throwable  {
+		List<FreeStyleProject> result = new ArrayList<FreeStyleProject>();
+//		Jenkins jenkins = this.getInstance();
+		for(String name: jobNames){
+			FreeStyleProject job = this.createFreeStyleProject(name);
+			job.getBuildersList().replace(new FailureBuilder());
+//			job = spy(job);
+//			jenkins.putItem(job);
+			result.add(job);
+		}
+		return result;
+	}
 }

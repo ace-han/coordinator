@@ -11,16 +11,13 @@ import static org.junit.Assert.assertThat;
 //import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.jenkinsci.plugins.coordinator.model.CoordinatorBuild;
 import org.jenkinsci.plugins.coordinator.model.CoordinatorProject;
 import org.junit.Rule;
 import org.junit.Test;
-import org.jvnet.hudson.test.FailureBuilder;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.SleepBuilder;
 import org.jvnet.hudson.test.recipes.LocalData;
 
 import hudson.model.FreeStyleBuild;
@@ -48,32 +45,6 @@ public class JobSequenceTest {
  			prepareSleepJobs(fourSecNames, 4000L);
  			prepareFailureJobs(failureNames);
         }
-        
-        private List<FreeStyleProject> prepareSleepJobs(String[] jobNames, long milliseconds) throws Throwable  {
-			List<FreeStyleProject> result = new ArrayList<FreeStyleProject>();
-			Jenkins jenkins = r.getInstance();
-			for(String name: jobNames){
-				FreeStyleProject job = r.createFreeStyleProject(name);
-				job.getBuildersList().replace(new SleepBuilder(milliseconds));
-//				job = spy(job);
-//				jenkins.putItem(job);
-				result.add(job);
-			}
-			return result;
-		}
-
-		private List<FreeStyleProject> prepareFailureJobs(String[] jobNames) throws Throwable  {
-			List<FreeStyleProject> result = new ArrayList<FreeStyleProject>();
-			Jenkins jenkins = r.getInstance();
-			for(String name: jobNames){
-				FreeStyleProject job = r.createFreeStyleProject(name);
-				job.getBuildersList().replace(new FailureBuilder());
-//				job = spy(job);
-//				jenkins.putItem(job);
-				result.add(job);
-			}
-			return result;
-		}
 	};
 
 	private FreeStyleBuild retrieveFreeStyleProjectLastBuild(String projectName) {
