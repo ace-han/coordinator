@@ -114,6 +114,11 @@ public class PerformExecutor {
 		}
 	}
 	
+	private boolean isNodeDeactive(TreeNode node){
+		State state = node.getState();
+		return state.disabled || !(state.checked || state.undetermined);
+	}
+	
 	/**
 	 * set up parameterMap and parentChildrenMap
 	 */
@@ -132,20 +137,22 @@ public class PerformExecutor {
 		
 		TreeNodeUtils.preOrderTraversal(buildRootNode, new TraversalHandler(){
 			@Override
-			public void doTraversal(TreeNode node) {
+			public boolean doTraversal(TreeNode node) {
+				if(isNodeDeactive(node)){
+					return false;
+				}
 				if(!node.isLeaf()){
 					prepareParentChildrenMap(node, node.shouldChildrenParallelRun());
 				}
+				return true;
 			}
 			
 		});
 	}
 	
 	/*package*/ void kickOffBuild(TreeNode node){
-		State state = node.getState();
 		if(executorPool.isShutdown()
-				|| state.disabled 
-				|| !(state.checked || state.undetermined)){
+				|| isNodeDeactive(node)){
 			// patch-up for serial build node.getChildren().get(0) is a not checked/determined node
 			postBuild(node);
 			return;

@@ -79,7 +79,8 @@ public class TreeNodeUtils {
 	}
 	
 	public static void preOrderTraversal(TreeNode node, TraversalHandler handler){
-		handler.doTraversal(node);
+		boolean canContinue = handler.doTraversal(node);
+		if(!canContinue){return;}
 		for(TreeNode c: node.getChildren()){
 			preOrderTraversal(c, handler);
 		}
