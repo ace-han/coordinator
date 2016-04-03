@@ -17,7 +17,7 @@ mvn hpi:run -Djetty.port=8100 -Dhpi.prefix=/jenkins
 mvn clean hpi:run -Djetty.port=8090 -Dhpi.prefix=/jenkins
 
 # Mac
-export MAVEN_OPTS="-javaagent:/Applications/jee/plugins/org.zeroturnaround.eclipse.embedder_6.2.0.RELEASE-201505210657/jrebel/jrebel.jar -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=8000,suspend=n"
+export MAVEN_OPTS="-javaagent:/Applications/jee.app/Contents/Eclipse/plugins/org.zeroturnaround.eclipse.embedder_6.4.1.RELEASE/jrebel/jrebel.jar -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=8000,suspend=n"
 mvn hpi:run -Djetty.port=8100 -Dhpi.prefix=/jenkins
 mvn clean hpi:run -Djetty.port=8090 -Dhpi.prefix=/jenkins
 

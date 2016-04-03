@@ -4,12 +4,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import net.sf.json.JSONObject;
-import net.sf.json.JsonConfig;
-
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
+
+
+import net.sf.json.JSONObject;
+import net.sf.json.JsonConfig;
 
 public class TreeNode {
 	
@@ -29,15 +31,17 @@ public class TreeNode {
 		EMPTY_ROOT = new TreeNode();
 		EMPTY_ROOT.setText("Root");
 		
-		// ROOT default is serial node
-		EMPTY_ROOT.setType("serial");
-		// EMPTY_ROOT.state.type = "serial";
+		// ROOT default is breaking serial node
+		// EMPTY_ROOT.setType("serial");
+		EMPTY_ROOT.state.breaking = true;
+		EMPTY_ROOT.state.execPattern = "serial";
+		
 	}
 	
 	
 	private String id;
 	private String text;
-	private String type;
+	private String type;	// TODO target be deprecated in 1.5.0
 	
 	private transient TreeNode parent;
 
@@ -63,14 +67,6 @@ public class TreeNode {
 		this.text = text.trim();
 	}
 
-	public String getType() {
-		return type;
-	}
-
-	public void setType(String type) {
-		this.type = type;
-	}
-
 	public List<TreeNode> getChildren() {
 		return this.children;
 	}
@@ -91,14 +87,6 @@ public class TreeNode {
 		return getChildren().size() == 0;
 	}
 	
-	public boolean shouldChildrenSerialRun(){
-		return "serial".equals(this.type);
-	}
-	
-	public boolean shouldChildrenParallelRun(){
-		return "parallel".equals(this.type);
-	}
-	
 	public int getBuildNumber() {
 		return buildNumber;
 	}
@@ -107,16 +95,6 @@ public class TreeNode {
 		this.buildNumber = buildNumber;
 	}
 	
-/*	
-	public boolean shouldChildrenSerialRun(){
-		return this.state.type == "serial";
-	}
-	
-	public boolean shouldChildrenParallelRun(){
-		return this.state.type == "parallel";
-	}
-*/
-
 	public TreeNode getParent() {
 		return parent;
 	}
@@ -141,35 +119,7 @@ public class TreeNode {
 	public String getJsonString(){
 		return JSONObject.fromObject(this, JSON_CONFIG).toString();
 	}
-	
-	public List<TreeNode> getFlatNodes(boolean byDepth) {
-		ArrayList<TreeNode> result = new ArrayList<TreeNode>();
-		if(byDepth){
-			flatNodesByDepth(this, result);
-		} else {
-			flatNodesByBreadth(this, result);
-		}
-		return result;
-	}
-	
-	protected void flatNodesByBreadth(TreeNode node, ArrayList<TreeNode> list) {
-		list.add(node);
-		if(node.children.isEmpty()){
-			return;
-		}
-		list.addAll(node.children);
-		for(TreeNode child: node.children){
-			flatNodesByBreadth(child, list);
-		}
-	}
 
-	protected void flatNodesByDepth(TreeNode node, List<TreeNode> list){
-		list.add(node);
-		for(TreeNode child: node.children){
-			flatNodesByDepth(child, list);
-		}
-		
-	}
 	
 	public TreeNode clone(boolean deep){
 		TreeNode clone = new TreeNode();
@@ -188,6 +138,54 @@ public class TreeNode {
 		}
 		return clone;
 	}
+
+	/**
+	 * Making this a calculated string based on {@code TreeNode.state.breaking, TreeNode.state.execPattern}
+	 * @return A calculated String as {@code leaf, breaking-serial,breaking-parallel,non-breaking-serial,non-breaking-parallel} 
+	 */
+	public String getType() {
+		if(this.isLeaf()){
+			return "leaf";
+		}
+		String result;
+		if(StringUtils.isEmpty(this.state.execPattern)){
+			// default is breaking
+			result = "breaking-"+type;
+		} else {
+			String breakingStype = this.state.breaking? "breaking-": "non-breaking-";
+			result = breakingStype+this.state.execPattern;
+		}
+		return result;
+	}
+
+	/**
+	 * For compatible sake
+	 * Since it's a calculated field from now on, 
+	 * please use {@link #State}{@code .breaking} and {@link #State}{@code .execPattern} instead
+	 * @param type
+	 */
+	@Deprecated
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public boolean shouldChildrenSerialRun(){
+		// TODO replace by {@code "serial".equals(TreeNode.state.execPattern) }
+		if(StringUtils.isEmpty(this.state.execPattern)) {
+			return this.getType().contains("serial");
+		} else {
+			return "serial".equals(this.state.execPattern);
+		}
+	}
+	
+	public boolean shouldChildrenParallelRun(){
+		// TODO replace by {@code "parallel".equals(TreeNode.state.execPattern) }
+		if(StringUtils.isEmpty(this.state.execPattern)) {
+			return this.getType().contains("parallel");
+		} else {
+			return "parallel".equals(this.state.execPattern);
+		}
+	}
 	
 	public static class State {
 		public boolean opened = true;
@@ -201,6 +199,9 @@ public class TreeNode {
 	    public boolean undetermined = false;
 	    
 	    //public String type; // it's weird that type in state doesnot change as ui changes
+	    // TreeNode.getType() is composed by below two options
+	    public boolean breaking = true;
+	    public String execPattern = "";
 	    
 	    public State(){}
 	}
@@ -208,26 +209,5 @@ public class TreeNode {
 	public static TreeNode fromString(String jsonStr){
 		JSONObject jsonObject = JSONObject.fromObject(jsonStr, TreeNode.JSON_CONFIG);
 		return (TreeNode)JSONObject.toBean(jsonObject, TreeNode.JSON_CONFIG);
-	}
-
-	/**
-	 * Assumption is that, left and right is identical in structure
-	 * This function merge from right to left
-	 * @param left
-	 * @param right
-	 */
-	public static void mergeState(TreeNode left, TreeNode right) {
-		State lstate = left.state;
-		State rstate = right.state;
-		
-		lstate.opened = rstate.opened;
-		lstate.disabled = rstate.disabled;
-		lstate.selected = rstate.selected;
-		lstate.checked = rstate.checked;
-		lstate.undetermined = rstate.undetermined;
-		for(int i=0; i<left.children.size(); i++){
-			mergeState(left.children.get(i), right.children.get(i));
-		}
-		
 	}
 }

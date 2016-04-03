@@ -103,7 +103,7 @@
 				//console.info(data);
 			})
 			.fail(function( jqXHR, textStatus, errorThrown) {
-				alert('Jenkins server encountered problems. Please check relevant server log.');
+				console.error('Jenkins server encountered problems. Please check relevant server log.');
 			})
 			
 		// Since Prototype.js has already polluted Object.toJSON. We won't be able to init jstree via json data turn to HTML data instead
@@ -120,15 +120,23 @@
 		}
 		state plugin is not what we expected, still not get auto-check feature ... */
 		
+		function setNodeBreakingSerial(node){
+			node.data.jstree.breaking = true;
+			node.data.jstree.execPattern = 'serial';
+		}
+		function updateNodeType(node) {
+			var inst = $.jstree.reference(node), type;
+			if(inst.is_leaf(node)){
+				type = 'leaf';
+			} else {
+				var breakingStyle = node.data.jstree.breaking? 'breaking-': 'non-breaking-';
+				type = breakingStyle + node.data.jstree.execPattern;
+			}
+			inst.set_type(node, type);
+		}
+		
 		function customizedMenu(node) {
 			var inst = $.jstree.reference(node);
-			var nodeType = inst.get_type(node);
-			var switchType;
-			if(nodeType == 'serial'){
-				switchType = 'parallel';
-			} else if(nodeType == 'parallel'){
-				switchType = 'serial';
-			}
 			
 			var items = $.jstree.defaults.contextmenu.items();
 			items.rename.shortcut = 113,
@@ -136,15 +144,30 @@
 			
 			items.remove.shortcut = 46,
 			items.remove.shortcut_label = 'Del';
-			if(switchType){
-				items['switch'] = {separator_before: true,
-							  icon: false,
-							  separator_after: false,
-							  label: 'Switch ' + switchType[0].toUpperCase(), 
-							  action: function(data){
-							      var node = inst.get_node(data.reference);
-								  inst.set_type(node, switchType);
-							  }};
+			
+			if (!inst.is_leaf(node)){
+				var switchExecPattern = node.data.jstree.execPattern==='serial'? 'parallel': 'serial';
+				var breakingOption = !node.data.jstree.breaking;
+				
+				items['execPattern'] = {separator_before: true,
+						icon: false,
+						separator_after: false,
+						label: 'Set '+switchExecPattern[0].toUpperCase()+switchExecPattern.slice(1) + ' Pattern', 
+						action: function(data){
+							var node = inst.get_node(data.reference);
+							node.data.jstree.execPattern = switchExecPattern;
+							updateNodeType(node);
+						}};
+				items['breakingOption'] = {
+						icon: false,
+						separator_after: false,
+						label: 'Set '+ (breakingOption?'Breaking':'Non Breaking') + ' Mode', 
+						action: function(data){
+							var node = inst.get_node(data.reference);
+							node.data.jstree.breaking = breakingOption;
+							updateNodeType(node);
+						}
+				}
 			}
 			
 			if(inst.is_disabled(node)){
@@ -196,8 +219,10 @@
 							contextmenu: {select_node: false, items: customizedMenu},
 							dnd: {inside_pos: 'last', check_while_dragging: true},
 							types: {leaf: {icon: 'coordinator-icon coordinator-leaf'},
-									serial: {icon: 'coordinator-icon coordinator-serial'},
-									parallel: {icon: 'coordinator-icon coordinator-parallel'}},
+									'breaking-serial': {icon: 'coordinator-icon coordinator-breaking-serial'},
+									'breaking-parallel': {icon: 'coordinator-icon coordinator-breaking-parallel'},
+									'non-breaking-serial': {icon: 'coordinator-icon coordinator-non-breaking-serial'},
+									'non-breaking-parallel': {icon: 'coordinator-icon coordinator-non-breaking-parallel'}},
 							core: {check_callback: function(operation, node, node_parent, node_position, more){
 									var inst = $.jstree.reference(node);
 									
@@ -218,12 +243,20 @@
 								var jstreeInst = $.jstree.reference(this);
 								// since prototype.js has polluted native JSON relevant methods, might as well do it here 
 								jstreeInst.get_container().find('[data-jstree]').each(function(i, e){
-									var node = jstreeInst.get_node(e, true);
-									var state = node.data().jstree;
-									jstreeInst.set_type(e, state.type);
-									if(node.hasClass('jstree-leaf') && state.checked){
-										jstreeInst.check_node(e);
+									var state = jstreeInst.get_node(e).data.jstree;
+									
+									// has to be !=-1, since there is a leaf type and we need all leaf to be the default (breaking & serial)
+									state.breaking = state.type.indexOf('non-breaking')!=-1? false: true;
+									state.execPattern = state.type.indexOf('parallel')!=-1? 'parallel': 'serial';
+									
+									// seems type plugin is now reading data-jstree settings in TreeNode/config.jelly
+									//jstreeInst.set_type(e, state.type);
+
+									// this time unchecked is not working... 
+									if($(e).hasClass('jstree-leaf') && !state.checked){
+										jstreeInst.uncheck_node(e);
 									}
+									
 								});
 								coordinatorWrapperTop = coordinatorWrapper.offset().top;
 		    					searcherSticker.width(searcherSticker.width());
@@ -232,39 +265,52 @@
 							})
 							.on('create_node.jstree', function(event, data){
 								var jstreeInst = data.instance;
-								jstreeInst.set_type(data.node, 'leaf');
-								if(jstreeInst.get_type(data.parent) === 'leaf'){
-									jstreeInst.set_type(data.parent, 'serial');
-								}
-								jstreeInst.open_node(data.parent); // might as well do so instead of open_all
+								data.node.data = {jstree: {}};
+								setNodeBreakingSerial(data.node);
+								updateNodeType(data.node);
+								
+								var parentNode = jstreeInst.get_node(data.parent)
+								setNodeBreakingSerial(parentNode);
+								updateNodeType(parentNode);
+								
+								jstreeInst.open_node(parentNode); // might as well do so instead of open_all
 							})
 							.on('paste.jstree', function(event, data){
 								var jstreeInst = data.instance;
+								var parentNode;
 								for(var i=0; i<data.node.length; i++){
-									if(!jstreeInst.get_node(data.node[i].parent).children.length){
-										jstreeInst.set_type(data.node[i].parent, 'leaf');
+									parentNode = jstreeInst.get_node(data.node[i].parent);
+									if(!parentNode.children.length){
+										setNodeBreakingSerial(parentNode);
+										updateNodeType(parentNode);
 									}
 								}
+								parentNode = jstreeInst.get_node(data.parent)
+								setNodeBreakingSerial(parentNode);
+								updateNodeType(parentNode);
 								
-								if(jstreeInst.get_type(data.parent) === 'leaf'){
-									jstreeInst.set_type(data.parent, 'serial');
-								}
-								jstreeInst.open_node(data.parent);
+								jstreeInst.open_node(parentNode);
 							})
 							.on('move_node.jstree', function(event, data){
 								var jstreeInst = data.instance;
-								if(!jstreeInst.get_node(data.old_parent).children.length){
-									jstreeInst.set_type(data.old_parent, 'leaf');
+								var oldParentNode = jstreeInst.get_node(data.old_parent);
+								if(!oldParentNode.children.length){
+									// parent node -> leaf
+									setNodeBreakingSerial(oldParentNode);
+									updateNodeType(oldParentNode);
 								}
-								if(jstreeInst.get_type(data.parent) === 'leaf'){
-									jstreeInst.set_type(data.parent, 'serial');
-								}
-								jstreeInst.open_node(data.parent);
+								
+								var parentNode = jstreeInst.get_node(data.parent);
+								setNodeBreakingSerial(parentNode);
+								updateNodeType(parentNode);
+								jstreeInst.open_node(parentNode);
 							})
 							.on('delete_node.jstree', function(event, data){
 								var jstreeInst = data.instance;
-								if(!jstreeInst.get_node(data.node.parent).children.length){
-									jstreeInst.set_type(data.node.parent, 'leaf');
+								var parentNode = jstreeInst.get_node(data.node.parent);
+								if(!parentNode.children.length){
+									setNodeBreakingSerial(parentNode);
+									updateNodeType(parentNode);
 								}
 							})
 							.on("click.jstree", ".jstree-anchor",function (e) {
@@ -281,12 +327,11 @@
 		
 		function saveExecPlanJsonString(){
 			var jstreeInst = $('#execPlan').jstree(true);
-			var rootNode = jstreeInst.get_json(null, {no_data: true})[0];
+			var rootNode = jstreeInst.get_json(null)[0];
 			// from coordinator-utils.js
-			optimized4NetworkTransmission(rootNode);
-			
 			patchUpTreeNode(jstreeInst, rootNode);
-			
+			optimized4NetworkTransmission(rootNode);
+
 			// Don't use json.js JSON.stringify! 
 			// Here we align with Jenkins convention Prototype.js
 			// This Object.toJSON method is defined in Prototype.js within jenkins package

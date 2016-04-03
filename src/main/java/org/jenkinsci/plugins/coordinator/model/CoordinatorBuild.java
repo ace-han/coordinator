@@ -1,17 +1,5 @@
 package org.jenkinsci.plugins.coordinator.model;
 
-import hudson.Functions;
-import hudson.Util;
-import hudson.model.Action;
-import hudson.model.Build;
-import hudson.model.ParameterValue;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.CauseAction;
-import hudson.model.ParameterDefinition;
-import hudson.model.ParametersAction;
-import hudson.model.ParametersDefinitionProperty;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -27,16 +15,12 @@ import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 
-import jenkins.model.Jenkins;
-import net.sf.json.JSON;
-import net.sf.json.JSONNull;
-import net.sf.json.JSONObject;
-
 import org.apache.commons.jelly.JellyContext;
 import org.apache.commons.jelly.JellyException;
 import org.apache.commons.jelly.Script;
 import org.apache.commons.jelly.XMLOutput;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.coordinator.utils.TreeNodeUtils;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.MetaClass;
 import org.kohsuke.stapler.QueryParameter;
@@ -44,6 +28,20 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.WebApp;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.kohsuke.stapler.jelly.JellyClassTearOff;
+
+import hudson.Functions;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.Action;
+import hudson.model.Build;
+import hudson.model.ParameterDefinition;
+import hudson.model.ParameterValue;
+import hudson.model.ParametersAction;
+import hudson.model.ParametersDefinitionProperty;
+import jenkins.model.Jenkins;
+import net.sf.json.JSON;
+import net.sf.json.JSONNull;
+import net.sf.json.JSONObject;
 
 
 public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild> {
@@ -135,7 +133,7 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 	private void prepareTableRowIndexMap() {
 		if(this.tableRowIndexMap == null){
 			this.tableRowIndexMap = new HashMap<String, Integer>();
-			List<TreeNode> list = this.originalExecutionPlan.getFlatNodes(true);
+			List<TreeNode> list = TreeNodeUtils.getFlatNodes(this.originalExecutionPlan, true);
 			for(int i=0; i<list.size(); i++){
 				TreeNode node = list.get(i);
 				this.tableRowIndexMap.put(node.getId(), i);
@@ -181,7 +179,8 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 				buildNumber = tryRetrievingBuildNumber(nodeId);
 				abi.build = retrieveTargetBuild(jobName, buildNumber);
 			}
-			if(abi.build == null){
+			// if buildNumber == 0 means not getting a chance to launch
+			if(abi.build == null && buildNumber != 0){
 				String errorMsg = "Insufficient parameters to retrieve specific build, jobName: " 
 						+ jobName + " build #: "+ buildNumber;
 				LOGGER.warning(errorMsg);
@@ -196,7 +195,7 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 	}
 
 	private int tryRetrievingBuildNumber(String nodeId) {
-		List<TreeNode> breadthList = this.getOriginalExecutionPlan().getFlatNodes(false);
+		List<TreeNode> breadthList = TreeNodeUtils.getFlatNodes(this.getOriginalExecutionPlan(), false);
 		// since all leaf nodes are in the end of the list
 		Collections.reverse(breadthList);
 		

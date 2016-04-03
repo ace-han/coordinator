@@ -11,12 +11,19 @@
 	}
 	
 	window.patchUpTreeNode = function (jstreeInst, node) {
+		var state;
 		if(!jstreeInst){
 			jstreeInst = $.jstree.reference(node.id);
 		}
 		var liContainer = jstreeInst.get_node(node.id, true);
 		if(liContainer.find('>a.jstree-anchor>.jstree-undetermined').length){
 			node.state.undetermined = true;
+		}
+		// since this kind of info. stores in node.data
+		if(node.data && node.data.jstree){
+			state = node.data.jstree;
+			node.state.breaking = state.breaking;
+			node.state.execPattern = state.execPattern;
 		}
 		for(var i=0; i<node.children.length; i++){
 			window.patchUpTreeNode(jstreeInst, node.children[i]);
@@ -87,7 +94,7 @@
 					var node = jstreeInst.get_node(e, true);
 					var state = node.data().jstree;
 					var anchor = node.children('a.jstree-anchor');
-					jstreeInst.set_type(e, state.type);
+					// jstreeInst.set_type(e, state.type);
 					if(jstreeInst.is_leaf(e)){
 						if(state.checked){
 							jstreeInst.check_node(e);

@@ -1,23 +1,5 @@
 package org.jenkinsci.plugins.coordinator.model;
 
-import hudson.model.Action;
-import hudson.model.BuildListener;
-import hudson.model.ItemGroup;
-import hudson.model.ParameterValue;
-import hudson.model.Queue.Executable;
-import hudson.model.Result;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.Cause.UpstreamCause;
-import hudson.model.CauseAction;
-import hudson.model.ParameterDefinition;
-import hudson.model.ParametersAction;
-import hudson.model.ParametersDefinitionProperty;
-import hudson.model.Run;
-import hudson.model.queue.QueueTaskFuture;
-import hudson.model.queue.ScheduleResult;
-import hudson.model.queue.SubTask;
-
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -34,14 +16,33 @@ import java.util.concurrent.TimeoutException;
 
 import javax.servlet.ServletException;
 
+import org.acegisecurity.Authentication;
+import org.acegisecurity.context.SecurityContextHolder;
+import org.jenkinsci.plugins.coordinator.model.TreeNode.State;
+import org.jenkinsci.plugins.coordinator.utils.TraversalHandler;
+import org.jenkinsci.plugins.coordinator.utils.TreeNodeUtils;
+
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.Action;
+import hudson.model.BuildListener;
+import hudson.model.CauseAction;
+import hudson.model.ItemGroup;
+import hudson.model.ParameterDefinition;
+import hudson.model.ParameterValue;
+import hudson.model.ParametersAction;
+import hudson.model.ParametersDefinitionProperty;
+import hudson.model.Result;
+import hudson.model.Run;
+import hudson.model.Cause.UpstreamCause;
+import hudson.model.Queue.Executable;
+import hudson.model.queue.QueueTaskFuture;
+import hudson.model.queue.ScheduleResult;
+import hudson.model.queue.SubTask;
 import jenkins.model.Jenkins;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
-
-import org.acegisecurity.Authentication;
-import org.acegisecurity.context.SecurityContextHolder;
-import org.jenkinsci.plugins.coordinator.model.TreeNode.State;
 
 
 /**
@@ -73,7 +74,8 @@ public class PerformExecutor {
 	// avoid a sudden peak thread creation in memory
 	private ExecutorService executorPool;
 	
-	// for updating the buildNumber in CoordinatorParameterValue
+	// for updating the buildNumber in CoordinatorParameterValue to display in history page
+	// so as request parameter need to be updated
 	private Map<String, TreeNode> parameterMap;
 	
 	public PerformExecutor(CoordinatorBuild cb, BuildListener listener, int poolSize){
@@ -112,47 +114,60 @@ public class PerformExecutor {
 		}
 	}
 	
+	private boolean isNodeDeactive(TreeNode node){
+		State state = node.getState();
+		return state.disabled || !(state.checked || state.undetermined);
+	}
+	
+	/**
+	 * set up parameterMap and parentChildrenMap
+	 */
 	private void prepareExecutionPlan() {
 		CoordinatorParameterValue parameter = (CoordinatorParameterValue)this.coordinatorBuild.getAction(ParametersAction.class)
 				.getParameter(CoordinatorParameterValue.PARAM_KEY);
-		TreeNode rootNode = parameter.getValue();
-		TreeNode.mergeState(this.coordinatorBuild.getOriginalExecutionPlan(), rootNode);
+		TreeNode requestRootNode = parameter.getValue();
+		TreeNode buildRootNode = this.coordinatorBuild.getOriginalExecutionPlan();
+		TreeNodeUtils.mergeState4Execution(buildRootNode, requestRootNode);
+		
+		// parameterMap for display build number in history page
 		parameterMap = new HashMap<String, TreeNode>();
-		for(TreeNode node: rootNode.getFlatNodes(false)){
+		for(TreeNode node: TreeNodeUtils.getFlatNodes(requestRootNode, false)){
 			parameterMap.put(node.getId(), node);
 		}
+		
+		TreeNodeUtils.preOrderTraversal(buildRootNode, new TraversalHandler(){
+			@Override
+			public boolean doTraversal(TreeNode node) {
+				if(isNodeDeactive(node)){
+					return false;
+				}
+				if(!node.isLeaf()){
+					prepareParentChildrenMap(node, node.shouldChildrenParallelRun());
+				}
+				return true;
+			}
+			
+		});
 	}
 	
-	
-
-
 	/*package*/ void kickOffBuild(TreeNode node){
-		State state = node.getState();
 		if(executorPool.isShutdown()
-				|| state.disabled 
-				|| !(state.checked || state.undetermined)){
+				|| isNodeDeactive(node)){
 			// patch-up for serial build node.getChildren().get(0) is a not checked/determined node
-			postBuildParentChildrenMap(node);
+			postBuild(node);
 			return;
 		}
 		if(node.isLeaf()){
-			if(executorPool.isShutdown()){
-				// no submit any new thread
-				return;
-			}
 			Authentication auth = Jenkins.getAuthentication();
 			executorPool.submit(new Execution(node, auth), node);
 		} else if(node.shouldChildrenParallelRun()){
-			prepareParentChildrenMap(node, true);
 			for(TreeNode child: node.getChildren()){
 				kickOffBuild(child);
 			}
 		} else {
-			prepareParentChildrenMap(node, false);
 			kickOffBuild(node.getChildren().get(0));
 		}
 	}
-
 
 	ArrayList<Action> prepareJobActions(
 			final AbstractProject<?, ?> atomicProject) {
@@ -169,8 +184,11 @@ public class PerformExecutor {
 		return actions;
 	}
 
-
-	protected void postBuildParentChildrenMap(TreeNode node) {
+	/**
+	 * This may kickoff another build
+	 * @param node
+	 */
+	protected void postBuild(TreeNode node) {
 		TreeNode parent = node.getParent();
 		if(parent == null){
 			// means node == root => true
@@ -188,12 +206,12 @@ public class PerformExecutor {
 			}
 		}
 		if(childMap.isEmpty()) {
+			// removing this parent node for the loop in execute() to end 
 			this.parentChildrenMap.remove(parent.getId());
-			postBuildParentChildrenMap(parent);
+			postBuild(parent);
 		}
 		
 	}
-
 
 	private void doPostBuildLog(final TreeNode node, Result result) {
 		String jobName = node.getText();
@@ -222,13 +240,13 @@ public class PerformExecutor {
 		AbstractProject<?, ?> atomicProject = (AbstractProject<?, ?>) Jenkins.getInstance().getItem(node.getText());
 		if(atomicProject == null){
 			formattedLog("Atomic Job: %s not found\n", node.getText());
-			executorPool.shutdown();
+			shutdownQuietly();
 			return null;
 		}
 		if(!atomicProject.isBuildable()){
 			formattedLog("Atomic Job: %s is either disabled or new job's configuration not saved[refer to hudson.model.Job#isHoldOffBuildUntilSave]\n", 
 					node.getText());
-			executorPool.shutdown();
+			shutdownQuietly();
 			return null;
 		}
 		Enhancer en = new Enhancer();
@@ -281,9 +299,6 @@ public class PerformExecutor {
 		return new ParametersAction(values);
 	}
 
-
-
-	
 	/*package*/ void prepareParentChildrenMap(TreeNode node,
 			boolean shouldChildrenParallelRun) {
 		List<TreeNode> children = node.getChildren();
@@ -327,6 +342,15 @@ public class PerformExecutor {
 			// ensure a exit condition in PerformExecutor#execute
 			activeBuildMap.clear();
 			formattedLog("shutdownQuietly failed with %s", e);
+		}
+	}
+	
+	public void onAtomicJobFailure(TreeNode node){
+		TreeNode parent = node.getParent();
+		if(parent.getState().breaking){
+			shutdownQuietly();
+		} else {
+			this.coordinatorBuild.setResult(Result.UNSTABLE);
 		}
 	}
 	
@@ -407,13 +431,13 @@ public class PerformExecutor {
 			} catch (TimeoutException e) {
 				formattedLog("Atomic Job(%1$s-%2$s) Time out, waited for %3$d %s, Exception:\n%4$s\n", 
 						node.getId(), jobName, time, TimeUnit.HOURS, e);
-				PerformExecutor.this.executorPool.shutdown();
+				// PerformExecutor.this.onAtomicJobFailure(node);
 			} catch (Exception e) {
 				formattedLog("Atomic Job(%1$s-%2$s#%3$s) failed, Exception:\n%4$s\n",
 						node.getId(), jobName, 
 						node.getBuildNumber(),	// since this build# got filled in proxiedProject#newBuild
 						e);
-				PerformExecutor.this.executorPool.shutdown();
+				// PerformExecutor.this.onAtomicJobFailure(node);
 			} finally{
 				// fixes #2841, Atomic Jobs without READ permission whilst Controller Job could be kicked off
 				SecurityContextHolder.getContext().setAuthentication(auth);
@@ -425,11 +449,10 @@ public class PerformExecutor {
 			
 			Result result = targetBuild.getResult();
 			doPostBuildLog(node, result);
-			if(result == Result.SUCCESS || result == Result.UNSTABLE){
-				postBuildParentChildrenMap(node);
-			} else {
-				executorPool.shutdown();
+			if(!(result == Result.SUCCESS || result == Result.UNSTABLE)) {
+				PerformExecutor.this.onAtomicJobFailure(node);
 			}
+			postBuild(node);
 		}
 
 		private QueueTaskFuture<Executable> getRunningFuture(TreeNode node,	
@@ -442,7 +465,7 @@ public class PerformExecutor {
 					formattedLog("Jenkins refused to add Atomic Job ( %s ), considered as a failure, aborting entire coordinator job\n", 
 								node.getText());
 					// In this case, I take it as sth. wrong in Jenkins, a force shutdown to check it out
-					shutdownQuietly();
+					PerformExecutor.this.onAtomicJobFailure(node);
 				} else if (!result.isCreated()){
 					// this means duplication in Jenkins Queue, 
 					// maybe the same text repeats in the executionPlan in builder's config
