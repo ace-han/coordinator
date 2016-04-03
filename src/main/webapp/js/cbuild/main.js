@@ -25,8 +25,10 @@
 				// this combination with tie_selection set false is what ui expected
 			checkbox: {/*keep_selected_style: false, */whole_node: false, tie_selection: false},
 			types: {leaf: {icon: 'coordinator-icon coordinator-leaf'},
-					serial: {icon: 'coordinator-icon coordinator-serial'},
-					parallel: {icon: 'coordinator-icon coordinator-parallel'}},
+				'breaking-serial': {icon: 'coordinator-icon coordinator-breaking-serial'},
+				'breaking-parallel': {icon: 'coordinator-icon coordinator-breaking-parallel'},
+				'non-breaking-serial': {icon: 'coordinator-icon coordinator-non-breaking-serial'},
+				'non-breaking-parallel': {icon: 'coordinator-icon coordinator-non-breaking-parallel'}},
 			decorators: {
 				'.jstree-table-row': function(liContainer, targetElem){
 						liContainer = $(liContainer);
@@ -110,7 +112,7 @@
 					// handle the toBeFinishedList for the very last time
 					$.each(toBeFinishedList, function(i, nodeId){
 						// extract the job name and build number from original_container_html
-						var liContainer = jstreeInst.get_original_container_html().find('#'+nodeId);
+						var liContainer = jstreeInst.get_container().find('#'+nodeId);
 						var jobName = liContainer.children('.model-link').text();
 						var buildNumber = liContainer.find('.buildNumberLink').text();
 

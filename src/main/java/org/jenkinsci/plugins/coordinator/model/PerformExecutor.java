@@ -116,7 +116,7 @@ public class PerformExecutor {
 		CoordinatorParameterValue parameter = (CoordinatorParameterValue)this.coordinatorBuild.getAction(ParametersAction.class)
 				.getParameter(CoordinatorParameterValue.PARAM_KEY);
 		TreeNode rootNode = parameter.getValue();
-		TreeNode.mergeState(this.coordinatorBuild.getOriginalExecutionPlan(), rootNode);
+		TreeNode.mergeState4Execution(this.coordinatorBuild.getOriginalExecutionPlan(), rootNode);
 		parameterMap = new HashMap<String, TreeNode>();
 		for(TreeNode node: rootNode.getFlatNodes(false)){
 			parameterMap.put(node.getId(), node);

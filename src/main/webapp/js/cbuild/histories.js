@@ -25,8 +25,10 @@
 			// this combination with tie_selection set false is what ui expected
 		checkbox: {/*keep_selected_style: false, */whole_node: false, tie_selection: false},
 		types: {leaf: {icon: 'coordinator-icon coordinator-leaf'},
-				serial: {icon: 'coordinator-icon coordinator-serial'},
-				parallel: {icon: 'coordinator-icon coordinator-parallel'}},
+			'breaking-serial': {icon: 'coordinator-icon coordinator-breaking-serial'},
+			'breaking-parallel': {icon: 'coordinator-icon coordinator-breaking-parallel'},
+			'non-breaking-serial': {icon: 'coordinator-icon coordinator-non-breaking-serial'},
+			'non-breaking-parallel': {icon: 'coordinator-icon coordinator-non-breaking-parallel'}},
 		decorators: {
 			'.jstree-table-row': function(liContainer, targetElem){
 					liContainer = $(liContainer);

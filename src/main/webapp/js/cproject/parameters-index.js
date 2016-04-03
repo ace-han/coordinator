@@ -21,18 +21,23 @@
 					// this combination with tie_selection set false is what ui expected
 					checkbox: {/*keep_selected_style: false, */whole_node: false, tie_selection: false},
 					types: {leaf: {icon: 'coordinator-icon coordinator-leaf'},
-							serial: {icon: 'coordinator-icon coordinator-serial'},
-							parallel: {icon: 'coordinator-icon coordinator-parallel'}}
+						'breaking-serial': {icon: 'coordinator-icon coordinator-breaking-serial'},
+						'breaking-parallel': {icon: 'coordinator-icon coordinator-breaking-parallel'},
+						'non-breaking-serial': {icon: 'coordinator-icon coordinator-non-breaking-serial'},
+						'non-breaking-parallel': {icon: 'coordinator-icon coordinator-non-breaking-parallel'}}
 					})
 					.on('ready.jstree', function(){
 						var jstreeInst = $.jstree.reference(this);
 						// since prototype.js has polluted native JSON relevant methods, might as well do it here 
 						jstreeInst.get_container().find('[data-jstree]').each(function(i, e){
-							var node = jstreeInst.get_node(e, true);
-							var state = node.data().jstree;
-							jstreeInst.set_type(e, state.type);
-							if(node.hasClass('jstree-leaf') && state.checked){
-								jstreeInst.check_node(e);
+							var state = jstreeInst.get_node(e).data.jstree;
+							
+							// seems type plugin is now reading data-jstree settings in TreeNode/config.jelly
+							//jstreeInst.set_type(e, state.type);
+
+							// this time unchecked is not working... 
+							if($(e).hasClass('jstree-leaf') && !state.checked){
+								jstreeInst.uncheck_node(e);
 							}
 						});
 					});
