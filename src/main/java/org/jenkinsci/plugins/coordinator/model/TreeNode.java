@@ -119,35 +119,7 @@ public class TreeNode {
 	public String getJsonString(){
 		return JSONObject.fromObject(this, JSON_CONFIG).toString();
 	}
-	
-	public List<TreeNode> getFlatNodes(boolean byDepth) {
-		ArrayList<TreeNode> result = new ArrayList<TreeNode>();
-		if(byDepth){
-			flatNodesByDepth(this, result);
-		} else {
-			flatNodesByBreadth(this, result);
-		}
-		return result;
-	}
-	
-	protected void flatNodesByBreadth(TreeNode node, ArrayList<TreeNode> list) {
-		list.add(node);
-		if(node.children.isEmpty()){
-			return;
-		}
-		list.addAll(node.children);
-		for(TreeNode child: node.children){
-			flatNodesByBreadth(child, list);
-		}
-	}
 
-	protected void flatNodesByDepth(TreeNode node, List<TreeNode> list){
-		list.add(node);
-		for(TreeNode child: node.children){
-			flatNodesByDepth(child, list);
-		}
-		
-	}
 	
 	public TreeNode clone(boolean deep){
 		TreeNode clone = new TreeNode();
@@ -237,35 +209,5 @@ public class TreeNode {
 	public static TreeNode fromString(String jsonStr){
 		JSONObject jsonObject = JSONObject.fromObject(jsonStr, TreeNode.JSON_CONFIG);
 		return (TreeNode)JSONObject.toBean(jsonObject, TreeNode.JSON_CONFIG);
-	}
-
-	/**
-	 * Assumption is that, left and right is identical in structure
-	 * This function merge from right to left
-	 * 
-	 * please do note about the order of the parameters
-	 * @param originNode
-	 * @param requestNode
-	 */
-	public static void mergeState4Execution(TreeNode originNode, TreeNode requestNode) {
-		State rState = requestNode.state;
-		State oState = originNode.state;
-		
-		rState.opened = oState.opened;
-		rState.disabled = oState.disabled;
-		rState.selected = oState.selected;
-		rState.checked = oState.checked;
-		rState.undetermined = oState.undetermined;
-		// don't merge below two properties, which will jerpodize project's root node afterwards
-//		lstate.breaking = rstate.breaking;
-//		lstate.execPattern = rstate.execPattern;
-		
-		// for build history display, we need to set this two fields
-		rState.breaking = oState.breaking;
-		rState.execPattern = oState.execPattern;
-		for(int i=0; i<originNode.children.size(); i++){
-			mergeState4Execution(originNode.children.get(i), requestNode.children.get(i));
-		}
-		
 	}
 }
