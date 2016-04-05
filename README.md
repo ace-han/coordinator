@@ -3,9 +3,8 @@
 ## About
 Coordinator is a Jenkins plugin to let the user create _master_ job to include other ordinary jobs as build steps.
 
-Build steps(job dependencies) could be categorized into *Serial* <img src="https://raw.githubusercontent.com/jenkinsci/coordinator-plugin/master/src/main/webapp/images/coordinator-serial.ico" width="16"> and *Parallel* <img src="https://raw.githubusercontent.com/jenkinsci/coordinator-plugin/master/src/main/webapp/images/coordinator-parallel.ico" width="16"> patterns
-
-And we think these two patterns should cover almost every generic scenario.
+Build steps(job dependencies) could be categorized into `serial/parallel` patterns.
+And we believe these two patterns should cover almost every generic scenario along with `breaking/non-breaking` options.
 
 ## Rationale
 
@@ -18,6 +17,15 @@ Jenkins has various ways to configure jobs execution order, such as built-in tri
 
 ## Demo
 http://jenkins.unendedquest.com/view/Coordinators/
+
+The UI configuration as below
+
+| UI  | Serail | Parallel |
+| ------------- | ------------- | ------------- |
+| **Breaking**(default)  | <img src="https://raw.githubusercontent.com/jenkinsci/coordinator-plugin/master/src/main/webapp/images/coordinator-serial.ico" width="16">  | <img src="https://raw.githubusercontent.com/jenkinsci/coordinator-plugin/master/src/main/webapp/images/coordinator-parallel.ico" width="16">  |
+| **Non-Breaking**  | <img src="https://raw.githubusercontent.com/jenkinsci/coordinator-plugin/develop/src/main/webapp/images/coordinator-non-breaking-serial.ico" width="16">  | <img src="https://raw.githubusercontent.com/jenkinsci/coordinator-plugin/develop/src/main/webapp/images/coordinator-non-breaking-parallel.ico" width="16">  |
+
+<img src="https://cloud.githubusercontent.com/assets/16347984/14013529/3a7b5410-f1ad-11e5-89cd-187625e45c58.png" width="512">
 
 ## Author
 [Ace Han](https://github.com/ace-han)
