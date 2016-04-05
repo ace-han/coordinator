@@ -25,7 +25,7 @@ The UI configuration as below
 | **Breaking**(default)  | <img src="https://raw.githubusercontent.com/jenkinsci/coordinator-plugin/master/src/main/webapp/images/coordinator-serial.ico" width="16">  | <img src="https://raw.githubusercontent.com/jenkinsci/coordinator-plugin/master/src/main/webapp/images/coordinator-parallel.ico" width="16">  |
 | **Non-Breaking**  | <img src="https://raw.githubusercontent.com/jenkinsci/coordinator-plugin/develop/src/main/webapp/images/coordinator-non-breaking-serial.ico" width="16">  | <img src="https://raw.githubusercontent.com/jenkinsci/coordinator-plugin/develop/src/main/webapp/images/coordinator-non-breaking-parallel.ico" width="16">  |
 
-<img src="https://cloud.githubusercontent.com/assets/16347984/14013529/3a7b5410-f1ad-11e5-89cd-187625e45c58.png" width="512">
+<img src="https://cloud.githubusercontent.com/assets/1177332/14269580/935d63ba-fb18-11e5-8d0f-ebf82f71170c.png" width="512">
 
 ## Author
 [Ace Han](https://github.com/ace-han)
