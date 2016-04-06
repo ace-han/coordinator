@@ -417,6 +417,9 @@ public class PerformExecutor {
 		@Override
 		public void run() {
 			String jobName = node.getText();
+			// ref #29, atomic jobs not found when security is enabled 
+			// make coordinator job be able to kick off those atomic jobs without READ permission as designed 
+			SecurityContextHolder.getContext().setAuthentication(auth);
 			AbstractProject<?, ?> atomicProject = prepareProxiedProject(node);
 			if(atomicProject == null) return;
 			List<Action> actions = prepareJobActions(atomicProject);
@@ -439,8 +442,6 @@ public class PerformExecutor {
 						e);
 				// PerformExecutor.this.onAtomicJobFailure(node);
 			} finally{
-				// fixes #2841, Atomic Jobs without READ permission whilst Controller Job could be kicked off
-				SecurityContextHolder.getContext().setAuthentication(auth);
 				targetBuild = activeBuildMap.remove(node.getId());
 			}
 			if(targetBuild == null){
