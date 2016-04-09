@@ -15,12 +15,20 @@ Jenkins has various ways to configure jobs execution order, such as built-in tri
 1. Create a new job of type _Coordinator Project_. ,include those jobs defined in step 1, specify the execution order, group some of them under same tree node to parallel run; 
 1. Trigger the master job, select which steps to run and start. Then you can monitor the over status within the single page.
 
+__Detail configuration walk through__:
+http://www.tothenew.com/blog/jenkins-coordinator-plugin/
+
+
 ## Demo
 http://jenkins.unendedquest.com/view/Coordinators/
 
+**Serial/Parallel**: Direct children of this kind of node will be executed **sequentially**/**concurrently**.
+
+**Breaking/Non-Breaking**: Any failure on direct children of this kind of node will **break**/**not break** the whole build.
+
 The UI configuration as below
 
-| UI  | Serail | Parallel |
+| UI  | Serial | Parallel |
 | ------------- | ------------- | ------------- |
 | **Breaking**(default)  | <img src="https://raw.githubusercontent.com/jenkinsci/coordinator-plugin/master/src/main/webapp/images/coordinator-serial.ico" width="16">  | <img src="https://raw.githubusercontent.com/jenkinsci/coordinator-plugin/master/src/main/webapp/images/coordinator-parallel.ico" width="16">  |
 | **Non-Breaking**  | <img src="https://raw.githubusercontent.com/jenkinsci/coordinator-plugin/develop/src/main/webapp/images/coordinator-non-breaking-serial.ico" width="16">  | <img src="https://raw.githubusercontent.com/jenkinsci/coordinator-plugin/develop/src/main/webapp/images/coordinator-non-breaking-parallel.ico" width="16">  |
