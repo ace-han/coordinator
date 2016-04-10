@@ -179,5 +179,19 @@
 			$('#execPlanJsonStrInput').val(jsonString);
 		});
 		
+		// ref #14, Status of coordinator job should be synced with the job status
+		(function pollBuildCaption(){
+			$.get('buildCaptionHtml')
+				.done(function( data, textStatus, jqXHR ) {
+					$('.build-caption.page-headline').replaceWith(data);
+				})
+				.fail(function( jqXHR, textStatus, errorThrown){
+					console.error(textStatus, errorThrown);
+				})
+				.always(function(){
+					setTimeout(pollBuildCaption, 5000);
+				})
+		})();
+		
 	});
 })(jQuery.noConflict());

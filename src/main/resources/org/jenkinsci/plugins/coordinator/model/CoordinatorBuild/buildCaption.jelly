@@ -1,0 +1,22 @@
+
+<!-- 
+	for synchronizing the coordinator build status every xxx seconds 
+	logic reference to 
+		/lib/hudson/buildCaption.jelly
+		/lib/hudson/model/AbstractBuild/index.jelly
+-->
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" 
+	xmlns:st="jelly:stapler" 
+	xmlns:d="jelly:define"
+	xmlns:l="/lib/layout" 
+	xmlns:t="/lib/hudson" 
+	xmlns:f="/lib/form"
+	xmlns:i="jelly:fmt">
+	<l:ajax>
+		<t:buildCaption>
+        ${%Build} ${it.displayName}
+        (<i:formatDate value="${it.timestamp.time}" type="both" dateStyle="medium" timeStyle="medium"/>)
+      </t:buildCaption>
+	</l:ajax>
+</j:jelly>

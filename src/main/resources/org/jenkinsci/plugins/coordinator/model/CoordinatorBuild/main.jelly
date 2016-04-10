@@ -1,4 +1,8 @@
-<!-- builder's config file -->
+<!-- 
+	build trigger config file, 
+	build's jelly is /hudson/model/AbstractBuild/index.jelly
+	and we are overwritting this for /hudson/model/Job/main.jelly(which is an empty page...)
+-->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core"
 		xmlns:st="jelly:stapler"

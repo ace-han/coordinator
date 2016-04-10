@@ -141,6 +141,13 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		}
 	}
 
+	/**
+	 * in page 
+	 * 	1st. doPollActiveAtomicBuildStatus to get the AtomicBuildInfo mainly buildNumber
+	 * 	2nd. doAtomicBuildResultTableRowHtml to get the buildStatus.jelly page and replace in the page for each atomic build
+	 * @param req
+	 * @return a map of <nodeId, AtomicBuildInfo>
+	 */
 	public JSON doPollActiveAtomicBuildStatus(StaplerRequest req) {
 		if(this.performExecutor == null){
 			// no build or refresh or reload from disk
@@ -167,6 +174,17 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		return JSONObject.fromObject(result);
 	}
 	
+	/**
+	 * 
+	 * in page 
+	 * 	1st. doPollActiveAtomicBuildStatus to get the AtomicBuildInfo mainly buildNumber (a map of <nodeId, AtomicBuildInfo>)
+	 * 	2nd. doAtomicBuildResultTableRowHtml to get the buildStatus.jelly page and replace in the page for each atomic build
+	 * @param req
+	 * @param nodeId
+	 * @param jobName
+	 * @param buildNumber
+	 * @return
+	 */
 	public String doAtomicBuildResultTableRowHtml(StaplerRequest req, @QueryParameter String nodeId, 
 			 @QueryParameter String jobName, @QueryParameter int buildNumber){
 		AtomicBuildInfo abi = new AtomicBuildInfo();
@@ -193,6 +211,17 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		JellyContext context = prepareJellyContextVariables(req);
 		return getBuildInfoScriptAsString(context, abi);
 	}
+	
+	/**
+	 * ref #14, Status of coordinator job should be synced with the job status
+	 * @param req
+	 * @return
+	 */
+	public String doBuildCaptionHtml(StaplerRequest req){
+		JellyContext context = prepareJellyContextVariables(req);
+		context.setVariable("it", this);
+		return getCoordinatorBuildJellyScriptAsString(context, "buildCaption.jelly");
+	}
 
 	private int tryRetrievingBuildNumber(String nodeId) {
 		List<TreeNode> breadthList = TreeNodeUtils.getFlatNodes(this.getOriginalExecutionPlan(), false);
@@ -215,25 +244,28 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 	
 	protected String getBuildInfoScriptAsString(JellyContext context, AtomicBuildInfo abi) {
 		context.setVariable("it", abi);
+		return getCoordinatorBuildJellyScriptAsString(context, "tableRow.jelly");
+	}
+	
+	private String getCoordinatorBuildJellyScriptAsString(JellyContext context, String scriptPath) {
         MetaClass mc = WebApp.getCurrent().getMetaClass(this.getClass());
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ClassLoader old = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(mc.classLoader.loader);
         try {
         	XMLOutput output = XMLOutput.createXMLOutput(baos);
-			Script script = mc.loadTearOff(JellyClassTearOff.class).findScript("tableRow.jelly");
+			Script script = mc.loadTearOff(JellyClassTearOff.class).findScript(scriptPath);
 			script.run(context, output);
 			return baos.toString("UTF-8");
 		} catch (JellyException e) {
-			LOGGER.warning("Exception in tableRow.jelly:\n"+e);
+			LOGGER.warning("Exception in "+scriptPath+":\n"+e);
 			return prepareBuildStatusErrorMessage(e);
 		} catch (UnsupportedEncodingException e) {
-			LOGGER.warning("Could not resolve tableRow.jelly in the specific charset:\n" + e);
+			LOGGER.warning("Could not resolve "+scriptPath+" in the specific charset:\n" + e);
 			return prepareBuildStatusErrorMessage(e);
 		} finally {
 			Thread.currentThread().setContextClassLoader(old);
 		}
-
 	}
 
 	protected JellyContext prepareJellyContextVariables(StaplerRequest req) {
