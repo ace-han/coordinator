@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -127,7 +128,7 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 	 * @return
 	 */
 	public AtomicBuildInfo getExecutionPlanInfo(){
-		return prepareAtomicBuildInfo(this.originalExecutionPlan);
+		return prepareAtomicBuildInfo(this.originalExecutionPlan, false);
 	}
 
 	private void prepareTableRowIndexMap() {
@@ -141,76 +142,6 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		}
 	}
 
-	/**
-	 * in page 
-	 * 	1st. doPollActiveAtomicBuildStatus to get the AtomicBuildInfo mainly buildNumber
-	 * 	2nd. doAtomicBuildResultTableRowHtml to get the buildStatus.jelly page and replace in the page for each atomic build
-	 * @param req
-	 * @return a map of <nodeId, AtomicBuildInfo>
-	 */
-	public JSON doPollActiveAtomicBuildStatus(StaplerRequest req) {
-		if(this.performExecutor == null){
-			// no build or refresh or reload from disk
-			return JSONNull.getInstance();
-		}
-		Set<Entry<String, AbstractBuild<?, ?>>> entrySet = this.performExecutor.getActiveBuildMap().entrySet();
-		// since every http request is state-less, and doXXX is catering that tableRowIndexMap may not get initialized
-		// we need to ensure that we are not geting an empty tableRowIndexMap
-		this.prepareTableRowIndexMap();
-		
-		Map<String, String> result = new HashMap<String, String>(entrySet.size()*2 + 3);
-		TreeNode dummyNode = prepareDummyTreeNode();
-		JellyContext context = prepareJellyContextVariables(req);
-		for(Map.Entry<String, AbstractBuild<?, ?>> entry: entrySet){
-			AbstractBuild<?, ?> build = entry.getValue();
-			AtomicBuildInfo abi = new AtomicBuildInfo();
-			abi.build = build;
-			abi.treeNode = dummyNode;	// just taking advantage of tableRow.jelly
-			
-			// already got initialized by prepareTableRowIndexMap()
-			abi.tableRowIndex = this.tableRowIndexMap.get(entry.getKey()); 
-			result.put(entry.getKey(), getBuildInfoScriptAsString(context, abi));
-		}
-		return JSONObject.fromObject(result);
-	}
-	
-	/**
-	 * 
-	 * in page 
-	 * 	1st. doPollActiveAtomicBuildStatus to get the AtomicBuildInfo mainly buildNumber (a map of <nodeId, AtomicBuildInfo>)
-	 * 	2nd. doAtomicBuildResultTableRowHtml to get the buildStatus.jelly page and replace in the page for each atomic build
-	 * @param req
-	 * @param nodeId
-	 * @param jobName
-	 * @param buildNumber
-	 * @return
-	 */
-	public String doAtomicBuildResultTableRowHtml(StaplerRequest req, @QueryParameter String nodeId, 
-			 @QueryParameter String jobName, @QueryParameter int buildNumber){
-		AtomicBuildInfo abi = new AtomicBuildInfo();
-		abi.build = retrieveTargetBuild(jobName, buildNumber);
-		if(abi.build == null){
-			// Here should be those jobs that are executing not much long, say <5 seconds.
-			// They may get no chance to update its tableRow.jelly during window.setTimeout interval by some scenario
-			// I might as well give it a full scan for a try to retrieve the correct buildNumber
-			if(StringUtils.isNotEmpty(nodeId)){
-				buildNumber = tryRetrievingBuildNumber(nodeId);
-				abi.build = retrieveTargetBuild(jobName, buildNumber);
-			}
-			// if buildNumber == 0 means not getting a chance to launch
-			if(abi.build == null && buildNumber != 0){
-				String errorMsg = "Insufficient parameters to retrieve specific build, jobName: " 
-						+ jobName + " build #: "+ buildNumber;
-				LOGGER.warning(errorMsg);
-				return prepareBuildStatusErrorMessage(new IllegalArgumentException(errorMsg));
-			}
-		}
-		abi.treeNode = prepareDummyTreeNode();
-		prepareTableRowIndexMap();
-		abi.tableRowIndex = this.tableRowIndexMap.get(nodeId);
-		JellyContext context = prepareJellyContextVariables(req);
-		return getBuildInfoScriptAsString(context, abi);
-	}
 	
 	/**
 	 * ref #14, Status of coordinator job should be synced with the job status
@@ -222,24 +153,45 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		context.setVariable("it", this);
 		return getCoordinatorBuildJellyScriptAsString(context, "buildCaption.jelly");
 	}
-
-	private int tryRetrievingBuildNumber(String nodeId) {
-		List<TreeNode> breadthList = TreeNodeUtils.getFlatNodes(this.getOriginalExecutionPlan(), false);
-		// since all leaf nodes are in the end of the list
-		Collections.reverse(breadthList);
+	
+	/**
+	 * Return current build's status
+	 * @param req
+	 * @return a map of <nodeId, BuildTableRowHtml(tableRow.jelly)>
+	 */
+	public JSON doPollActiveAtomicBuildsTableRowHtml(StaplerRequest req){
+		if(this.performExecutor == null){
+			// no build or refresh or reload from disk
+			return JSONNull.getInstance();
+		}
+		CoordinatorParameterValue parameter = (CoordinatorParameterValue)this.getAction(ParametersAction.class)
+				.getParameter(CoordinatorParameterValue.PARAM_KEY);
+		// children under this rootNode will get its corresponding build number
+		// if it has already been built
+		TreeNode rootNode = parameter.getValue();
 		
-		for(TreeNode node: breadthList){
-			if(nodeId.equals(node.getId())){
-				return node.getBuildNumber();
+		// doesnt matter if byDepth or not for the case
+		// rootNode included
+		List<TreeNode> nodes = TreeNodeUtils.getFlatNodes(rootNode, true); 
+		JellyContext context = prepareJellyContextVariables(req);
+		Map<String, String> result = new HashMap<String, String>();
+		long now = Functions.getCurrentTime().getTime();
+		long timeDelta = 10 * 1000; // 10 seconds
+		for(TreeNode node: nodes){
+			if(!node.isLeaf()){
+				continue;
+			}
+			AtomicBuildInfo abi = prepareAtomicBuildInfo(node, true);
+			if(null == abi.build){
+				continue;
+			} else if(abi.build.isBuilding()){
+				result.put(node.getId(), getBuildInfoScriptAsString(context, abi));
+			} else if(abi.build.getStartTimeInMillis() + abi.build.getDuration() + timeDelta > now){
+				// for those just finished and not getting a chance to be updated in the jelly page
+				result.put(node.getId(), getBuildInfoScriptAsString(context, abi));
 			}
 		}
-		return 0;
-	}
-
-	private TreeNode prepareDummyTreeNode() {
-		TreeNode dummyNode = new TreeNode();
-		dummyNode.setText("Dummy for Polling Active Atomic Build Info");
-		return dummyNode;
+		return JSONObject.fromObject(result);
 	}
 	
 	protected String getBuildInfoScriptAsString(JellyContext context, AtomicBuildInfo abi) {
@@ -288,7 +240,7 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 				+ "<div class='jstree-table-col lastDuration'>Server side error. Please checkout the server log</div></div>";
 	}
 
-	public AtomicBuildInfo prepareAtomicBuildInfo(TreeNode node){
+	public AtomicBuildInfo prepareAtomicBuildInfo(TreeNode node, boolean skipChildren){
 		prepareTableRowIndexMap();
 		AtomicBuildInfo abi = new AtomicBuildInfo();
 		abi.treeNode = node;
@@ -297,10 +249,12 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		if(children.isEmpty()){
 			abi.build = retrieveTargetBuild(node.getText(), node.getBuildNumber());
 		} 
-		abi.children = new ArrayList<AtomicBuildInfo>(children.size());
-		for(TreeNode child: children){
-			AtomicBuildInfo abiChild = prepareAtomicBuildInfo(child);
-			abi.children.add(abiChild);
+		if(!skipChildren){
+			abi.children = new ArrayList<AtomicBuildInfo>(children.size());
+			for(TreeNode child: children){
+				AtomicBuildInfo abiChild = prepareAtomicBuildInfo(child, skipChildren);
+				abi.children.add(abiChild);
+			}
 		}
 		return abi;
 	}
@@ -338,7 +292,7 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 	 */
 	public static class AtomicBuildInfo {
 		public TreeNode treeNode;
-		public int tableRowIndex;
+		public int tableRowIndex; // for odd or even in page rendering
 		public AbstractBuild<?, ?> build;
 		
 		public List<AtomicBuildInfo> children;

@@ -67,97 +67,6 @@
 			})
 		}
 
-		var needEmptyJobStatusDoubleCheck = true;
-
-		function startPollingBuildInfo(jstreeInst, pendingMap){
-			pendingMap = pendingMap || {};
-			var nodeId;
-			$.get('pollActiveAtomicBuildStatus')
-				.done(function( data, textStatus, jqXHR ) {
-					data = data || {};
-					var isEmptyResult = $.isEmptyObject(data)
-						, toBeFinishedList = [];
-
-					// prepare pendingMap
-					if(!$.isEmptyObject(pendingMap)){
-						// filter those considered should be finished
-						for(nodeId in pendingMap){
-							if(!(nodeId in data)){
-								toBeFinishedList.push(nodeId);
-							}
-						}
-						needEmptyJobStatusDoubleCheck = true;
-					}
-
-					if(isEmptyResult){
-						if(needEmptyJobStatusDoubleCheck){
-							// see if any job finishes way too quick to update its final status
-							$.each(jstreeInst.get_bottom_checked(), function(i, nodeId){
-								if( jstreeInst.is_disabled(nodeId) && toBeFinishedList.indexOf(nodeId)!=-1 ){
-									// since get_bottom_checked method does not filter disabled ones
-									return true;
-								}
-								toBeFinishedList.push(nodeId);
-							});
-							needEmptyJobStatusDoubleCheck = false;
-						}
-					}
-
-					pendingMap = data;
-
-					for(nodeId in pendingMap){
-						jstreeInst.update_redraw_template(nodeId, '.jstree-table-row', pendingMap[nodeId]);
-					}
-
-					// handle the toBeFinishedList for the very last time
-					$.each(toBeFinishedList, function(i, nodeId){
-						// extract the job name and build number from get_container
-						var liContainer = jstreeInst.get_container().find('#'+nodeId); // using standard api instead of the one from decorator plugin
-						var jobName = liContainer.children('.model-link').text();
-						var buildNumber = liContainer.find('.buildNumberLink').text();
-						
-						// trigger an ajax call to retrieve the generated tableRow.jelly
-						(function(nodeId, jobName, buildNumber){
-							$.get('atomicBuildResultTableRowHtml',
-								{nodeId: nodeId
-								, jobName: jobName
-								, buildNumber: buildNumber
-								})
-								.done(function( data, textStatus, jqXHR ) {
-									jstreeInst.update_redraw_template(nodeId, '.jstree-table-row', data);
-									setTimeout(function(){
-										// if need to uncheck the node
-										uncheckBasedOnJobStatus(jstreeInst,
-											jstreeInst.get_json(nodeId,
-												{no_data: true, no_children: true, no_state: true, flat: true}));
-										}, 500);
-								})
-								.fail(function( jqXHR, textStatus, errorThrown){
-    								jstreeInst.update_redraw_template(nodeId, '.jstree-table-row',
-    									'<div class="jstree-wholerow jstree-table-row" style="background-color:#ffebeb;">'
-    									+ '<div class="jstree-table-col jobStatus">&nbsp;</div>' // for padding the space
-    									+ '<div class="jstree-table-col lastDuration">Network error: '
-    									+ jqXHR.status + '. Please refresh the page.</div></div>')
-								});
-						})(nodeId, jobName, buildNumber);
-					})
-					var buildTriggerBtn = YAHOO.widget.Button.getButton('buildTrigger');
-					if(buildTriggerBtn){
-						buildTriggerBtn.set('disabled', !isEmptyResult);
-					}
-
-				})
-				.fail(function( jqXHR, textStatus, errorThrown) {
-					// popup an alert to stop the polling
-					alert('Jenkins server encountered problems. Please check relevant server log.');
-				})
-				.always(function(){
-					setTimeout(function(){
-						startPollingBuildInfo(jstreeInst, pendingMap);
-					}, 5000); // just follow jenkins itself polling interval
-				})
-		}
-
 		$('#bottom-sticker').on('click', '#buildTrigger', function(){
 			$('span.apply-button').trigger('click');
 		});
@@ -192,6 +101,34 @@
 					setTimeout(pollBuildCaption, 5000);
 				})
 		})();
+		
+		// ref #13, Atomic job building status bar does not end in the build table sometimes
+		function startPollingBuildInfo(jstreeInst){
+			$.get('pollActiveAtomicBuildsTableRowHtml')
+				.done(function( data, textStatus, jqXHR ){
+					var nodeId;
+					for(nodeId in data){
+						jstreeInst.update_redraw_template(nodeId, '.jstree-table-row', data[nodeId]);
+						(function(nodeId){
+							setTimeout(function(){
+								// if need to uncheck the node
+								uncheckBasedOnJobStatus(jstreeInst,
+									jstreeInst.get_json(nodeId,
+										{no_data: true, no_children: true, no_state: true, flat: true}));
+							}, 500);
+						})(nodeId);
+					}
+				})
+				.fail(function( jqXHR, textStatus, errorThrown) {
+					// popup an alert to stop the polling
+					alert('Jenkins server encountered problems. Please check relevant server log.');
+				})
+				.always(function(){
+					setTimeout(function(){
+						startPollingBuildInfo(jstreeInst);
+					}, 5000); // just follow jenkins itself polling interval
+				})
+		}
 		
 	});
 })(jQuery.noConflict());
