@@ -4,10 +4,12 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -61,7 +63,7 @@ public class PerformExecutor {
 	// for a cancelled execution polling indication <treeNodeId, activeBuild>
 	// active means pending, building job
 	private ConcurrentHashMap<String, AbstractBuild<?, ?>> activeBuildMap
-								= new ConcurrentHashMap<String, AbstractBuild<?, ?>>();;
+								= new ConcurrentHashMap<String, AbstractBuild<?, ?>>();
 	
 	protected ConcurrentHashMap<String, AbstractBuild<?, ?>> getActiveBuildMap() {
 		return activeBuildMap;
@@ -77,6 +79,9 @@ public class PerformExecutor {
 	// for updating the buildNumber in CoordinatorParameterValue to display in history page
 	// so as request parameter need to be updated
 	private Map<String, TreeNode> parameterMap;
+	
+	// only HashMap is okay
+	private Set<String> failedParentNodeSet;
 	
 	public PerformExecutor(CoordinatorBuild cb, BuildListener listener, int poolSize){
 		this.coordinatorBuild = cb;
@@ -114,11 +119,30 @@ public class PerformExecutor {
 		}
 	}
 	
-	private boolean isNodeDeactive(TreeNode node){
+	private boolean isDeactive(TreeNode node){
 		State state = node.getState();
 		return state.disabled || !(state.checked || state.undetermined);
 	}
 	
+	private boolean isOkayToKickoff(TreeNode node) {
+		boolean result = true;
+		// recursively goes up the parent see if any nodeId in failedParentNodeSet
+		// if not 21_L will kickoff anyway
+//		Root_S_breaking
+//		|-- 1_S_breaking
+//		|	|-- 11_L
+//		|	|__ 12_L_Failure
+//		|__ 2_S_breaking
+//			|-- 21_L
+//			|__ 22_L
+		while(null != (node=node.getParent()) ){
+			if( failedParentNodeSet.contains(node.getId()) ){
+				result = false;
+				break;
+			}
+		}
+		return result;
+	}
 	/**
 	 * set up parameterMap and parentChildrenMap
 	 */
@@ -138,7 +162,7 @@ public class PerformExecutor {
 		TreeNodeUtils.preOrderTraversal(buildRootNode, new TraversalHandler(){
 			@Override
 			public boolean doTraversal(TreeNode node) {
-				if(isNodeDeactive(node)){
+				if(isDeactive(node)){
 					return false;
 				}
 				if(!node.isLeaf()){
@@ -146,13 +170,15 @@ public class PerformExecutor {
 				}
 				return true;
 			}
-			
 		});
+		
+		failedParentNodeSet = new HashSet<String>();
 	}
 	
 	/*package*/ void kickOffBuild(TreeNode node){
 		if(executorPool.isShutdown()
-				|| isNodeDeactive(node)){
+				|| isDeactive(node)
+				|| !isOkayToKickoff(node)){
 			// patch-up for serial build node.getChildren().get(0) is a not checked/determined node
 			postBuild(node);
 			return;
@@ -240,13 +266,13 @@ public class PerformExecutor {
 		AbstractProject<?, ?> atomicProject = (AbstractProject<?, ?>) Jenkins.getInstance().getItem(node.getText());
 		if(atomicProject == null){
 			formattedLog("Atomic Job: %s not found\n", node.getText());
-			shutdownQuietly();
+			onAtomicJobFailure(node);
 			return null;
 		}
 		if(!atomicProject.isBuildable()){
 			formattedLog("Atomic Job: %s is either disabled or new job's configuration not saved[refer to hudson.model.Job#isHoldOffBuildUntilSave]\n", 
 					node.getText());
-			shutdownQuietly();
+			onAtomicJobFailure(node);
 			return null;
 		}
 		Enhancer en = new Enhancer();
@@ -335,20 +361,31 @@ public class PerformExecutor {
 		}
 	}
 	
-	public void shutdownQuietly(){
-		try {
-			shutdown();
-		} catch (Exception e) {
-			// ensure a exit condition in PerformExecutor#execute
-			activeBuildMap.clear();
-			formattedLog("shutdownQuietly failed with %s", e);
+	private void softShutdown(){
+		if(!executorPool.isShutdown()){
+			executorPool.shutdown();
 		}
 	}
 	
-	public void onAtomicJobFailure(TreeNode node){
-		TreeNode parent = node.getParent();
-		if(parent.getState().breaking){
-			shutdownQuietly();
+	/**
+	 * Node should not be parent node
+	 * @param node
+	 */
+	protected void onAtomicJobFailure(TreeNode node){
+		TreeNode origin = node;
+		while(null != (node=node.getParent()) ){
+			if(node.getState().breaking){
+				this.failedParentNodeSet.add(node.getId());
+			} else {
+				break;
+			}
+		}
+		boolean rootNodeBreaking = coordinatorBuild.getOriginalExecutionPlan().getState().breaking;
+		if(origin.getParent().getState().breaking && null==node && rootNodeBreaking){
+			// null==node means already up to the root node
+			// rootNodeBreaking the the whole executorPool should shutdown();
+			softShutdown();
+			//shutdownQuietly();
 		} else {
 			this.coordinatorBuild.setResult(Result.UNSTABLE);
 		}
