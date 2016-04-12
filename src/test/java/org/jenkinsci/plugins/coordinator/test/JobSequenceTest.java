@@ -134,7 +134,7 @@ public class JobSequenceTest {
 		assertEquals("Coordinator build should be failure.", Result.FAILURE, build.getResult());
 		
 		String[] notTriggeredProjectNames = {"211_L_2s", "212_L_4s", "213_L_2s", "23_L_2s", "3_L_2s"};
-		StringBuilder reason = new StringBuilder("All this project should not be triggered.\n");
+		StringBuilder reason = new StringBuilder("All these projects should not be triggered.\n");
 		ArrayList<FreeStyleBuild> builds = new ArrayList<FreeStyleBuild>();
 		for(String projectName: notTriggeredProjectNames){
 			builds.add(retrieveFreeStyleProjectLastBuild(projectName));
