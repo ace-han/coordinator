@@ -214,14 +214,14 @@ public class BreakingOptionTest {
 //		      |-- 32_P_breaking
 //	      	  |   |-- 321_L_Failure
 //    	  	  |   |__ 322_L_2s
-//		      |__ 31_L_2s
+//		      |__ 33_L_2s
 //		  
 //		triggered ( AbstractProject.createExecutable() )
 //		  122_L_4s, 13_L_2s, 
 //		  21_L_2s, 22_L_2s, 
 //		  31_L_2s, 322_L_2s
 //		not triggered:
-//		  4_L_2s 
+//		  33_L_2s 
 //		not aborted:
 //		  22_L_2s, 322_L_2s
 //		coordinator build should be unstable
@@ -242,7 +242,7 @@ public class BreakingOptionTest {
 		}
 		assertThat(reason.toString(), builds, everyItem( notNullValue(FreeStyleBuild.class) ) );
 		
-		String[] notTriggeredProjectNames = {"4_L_2s"};
+		String[] notTriggeredProjectNames = {"33_L_2s"};
 		reason = new StringBuilder("All these projects should not be triggered.\n");
 		builds = new ArrayList<FreeStyleBuild>();
 		for(String projectName: notTriggeredProjectNames){
