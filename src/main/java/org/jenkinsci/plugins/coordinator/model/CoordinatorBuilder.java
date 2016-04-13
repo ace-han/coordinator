@@ -3,6 +3,7 @@ package org.jenkinsci.plugins.coordinator.model;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.BuildListener;
+import hudson.model.Descriptor;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.tasks.BuildStepDescriptor;
@@ -55,6 +56,25 @@ public class CoordinatorBuilder extends Builder {
 		// TODO make this 10 configurable
 		PerformExecutor performExecutor = new PerformExecutor(cb, listener, 10);
 		return performExecutor.execute();
+	}
+	
+	/**
+	 * It's really weird that jenkins doesn't load this plugin's descriptor in test
+	 * 
+	 * It will break the test in some way, 
+	 * for example, CoordinatorBuild result will turn Result.UNSTABLE to Result.FAILURE
+	 * refer to {@code hudson.model.AbstractBuild#getBuildStepName}, 
+	 * {@code hudson.tasks.Builder#getDescriptor}, 
+	 * {@code jenkins.model.Jenkins#getDescriptorOrDie}
+	 * @return
+	 */
+	public Descriptor<Builder> getDescriptor(){
+		try{
+			return super.getDescriptor();
+		} catch(AssertionError e){
+			// this scenario should be only to unit test 
+			return new DescriptorImpl();
+		}
 	}
 	
 	@Extension
