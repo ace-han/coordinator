@@ -126,6 +126,10 @@ public class PerformExecutor {
 	
 	private boolean isOkayToKickoff(TreeNode node) {
 		boolean result = true;
+		if(!node.isLeaf()){
+			// parent node always okay to kickoff
+			return result;
+		}
 		// recursively goes up the parent see if any nodeId in failedParentNodeSet
 		// if not 21_L will kickoff anyway
 //		Root_S_breaking
@@ -222,6 +226,10 @@ public class PerformExecutor {
 			return;
 		}
 		Map<String, TreeNode> childMap = this.parentChildrenMap.get(parent.getId());
+		if( null == childMap ){
+			// possible some child under the same breaking parent already failed
+			return;
+		}
 		childMap.remove(node.getId());
 		
 		if(parent.shouldChildrenSerialRun()){
@@ -381,11 +389,17 @@ public class PerformExecutor {
 			}
 		}
 		boolean rootNodeBreaking = coordinatorBuild.getOriginalExecutionPlan().getState().breaking;
-		if(origin.getParent().getState().breaking && null==node && rootNodeBreaking){
-			// null==node means already up to the root node
-			// rootNodeBreaking the the whole executorPool should shutdown();
-			softShutdown();
-			//shutdownQuietly();
+		TreeNode parent = origin.getParent();
+		if(parent.getState().breaking){
+			parentChildrenMap.remove(parent.getId());
+			postBuild(parent);
+			if(null==node && rootNodeBreaking){
+				// null==node means already traversed up to the root node
+				// rootNodeBreaking means the whole executorPool should shutdown();
+				softShutdown();
+			} else {
+				this.coordinatorBuild.setResult(Result.UNSTABLE);
+			}
 		} else {
 			this.coordinatorBuild.setResult(Result.UNSTABLE);
 		}
