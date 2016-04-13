@@ -390,6 +390,7 @@ public class PerformExecutor {
 		}
 		boolean rootNodeBreaking = coordinatorBuild.getOriginalExecutionPlan().getState().breaking;
 		TreeNode parent = origin.getParent();
+		Result result = Result.UNSTABLE;
 		if(parent.getState().breaking){
 			parentChildrenMap.remove(parent.getId());
 			postBuild(parent);
@@ -397,12 +398,10 @@ public class PerformExecutor {
 				// null==node means already traversed up to the root node
 				// rootNodeBreaking means the whole executorPool should shutdown();
 				softShutdown();
-			} else {
-				this.coordinatorBuild.setResult(Result.UNSTABLE);
+				result = Result.FAILURE;
 			}
-		} else {
-			this.coordinatorBuild.setResult(Result.UNSTABLE);
-		}
+		} 
+		this.coordinatorBuild.setResult(result);
 	}
 	
 	/**
