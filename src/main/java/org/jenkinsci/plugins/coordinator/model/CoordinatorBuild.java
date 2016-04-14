@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -236,6 +237,7 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 	}
 
 	public AtomicBuildInfo prepareAtomicBuildInfo(TreeNode node, boolean skipChildren){
+		// this method will be called in page histories.jelly, so take care
 		prepareTableRowIndexMap();
 		AtomicBuildInfo abi = new AtomicBuildInfo();
 		abi.treeNode = node;
@@ -278,6 +280,26 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		}
 		
 		return result;
+	}
+	
+	public <T extends Action> T getAction(Class<T> type) {
+		T action = super.getAction(type);
+		if(!(action instanceof ParametersAction)){
+			return action;
+		}
+		// fix #31, NullPointerException while coordinator job triggered by 
+		// an upstream job with a plugin like parameterized-trigger-plugin
+		ParametersAction pa = (ParametersAction) action;
+		CoordinatorParameterValue parameter = (CoordinatorParameterValue)pa.getParameter(
+								CoordinatorParameterValue.PARAM_KEY);
+		if(parameter != null){
+			 return action;
+		}
+		CoordinatorParameterValue pv = new CoordinatorParameterValue(CoordinatorParameterValue.PARAM_KEY, 
+				"", getOriginalExecutionPlan());
+		T cast = type.cast(pa.createUpdated(Arrays.asList(pv)));
+		this.replaceAction(cast);
+		return cast;
 	}
 	
 	/**
