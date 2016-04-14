@@ -56,7 +56,7 @@
 															<ul>
 																
 																<j:set var="executionPlanInfo" 
-																	value="${it.prepareAtomicBuildInfo(historicalAction.getParameter('executionPlan').value)}"/>
+																	value="${it.prepareAtomicBuildInfo(historicalAction.getParameter('executionPlan').value, false)}"/>
 																	
 																<st:include it="${executionPlanInfo}" page="tablized.jelly" from="${it}"/>
 															</ul>
