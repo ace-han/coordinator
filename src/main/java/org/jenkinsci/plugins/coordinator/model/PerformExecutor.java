@@ -125,11 +125,12 @@ public class PerformExecutor {
 	}
 	
 	private boolean isOkayToKickoff(TreeNode node) {
+		TreeNode origin = node;
 		boolean result = true;
-		if(!node.isLeaf()){
-			// parent node always okay to kickoff
-			return result;
-		}
+//		if(!node.isLeaf()){
+//			// parent node always okay to kickoff
+//			return result;
+//		}
 		// recursively goes up the parent see if any nodeId in failedParentNodeSet
 		// if not 21_L will kickoff anyway
 //		Root_S_breaking
@@ -145,10 +146,13 @@ public class PerformExecutor {
 				break;
 			}
 		}
+		if(!result && !origin.isLeaf()){
+			this.parentChildrenMap.remove(origin.getId());
+		}
 		return result;
 	}
 	/**
-	 * set up parameterMap and parentChildrenMap
+	 * set up failedParentNodeSet, parameterMap and parentChildrenMap
 	 */
 	private void prepareExecutionPlan() {
 		CoordinatorParameterValue parameter = (CoordinatorParameterValue)this.coordinatorBuild.getAction(ParametersAction.class)
@@ -392,8 +396,6 @@ public class PerformExecutor {
 		TreeNode parent = origin.getParent();
 		Result result = Result.UNSTABLE;
 		if(parent.getState().breaking){
-			parentChildrenMap.remove(parent.getId());
-			postBuild(parent);
 			if(null==node && rootNodeBreaking){
 				// null==node means already traversed up to the root node
 				// rootNodeBreaking means the whole executorPool should shutdown();

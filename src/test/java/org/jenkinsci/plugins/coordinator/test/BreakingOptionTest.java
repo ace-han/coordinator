@@ -261,4 +261,41 @@ public class BreakingOptionTest {
 		}
 		assertThat(reason.toString(), results, everyItem( not(equalTo(Result.ABORTED) )) );
 	}
+	
+	@LocalData
+	@Test(timeout=15000L)
+	public void noTimeoutChecking() throws Exception {
+//		  Root_P_non_breaking
+//		  |__ 2_S_breaking
+//		      |-- 21_L_Failure
+//		      |-- 22_P_non_breaking
+//	      	  |   |-- 211_L_2s
+//    	  	  |   |__ 213_L_2s
+//		      |__ 23_L_2s
+//		  
+//		triggered ( AbstractProject.createExecutable() )
+//		  
+//		not triggered:
+//		  211_L_2s 213_L_2s 23_L_2s
+//		not aborted:
+//		
+//		coordinator build should not trigger timeout exception
+		
+		Jenkins jenkins = r.getInstance();
+		CoordinatorProject coordinatorProject = (CoordinatorProject) jenkins.getItem("test");
+		QueueTaskFuture<CoordinatorBuild> future = coordinatorProject.scheduleBuild2(0);
+		CoordinatorBuild build = future.get(60, TimeUnit.SECONDS);
+
+		assertEquals("Coordinator build should be failure.", Result.UNSTABLE, build.getResult());
+		
+		String[] notTriggeredProjectNames = {"211_L_2s", "213_L_2s", "23_L_2s"};
+		StringBuilder reason = new StringBuilder("All these projects should not be triggered.\n");
+		ArrayList<FreeStyleBuild> builds = new ArrayList<FreeStyleBuild>();
+		for(String projectName: notTriggeredProjectNames){
+			builds.add(retrieveFreeStyleProjectLastBuild(projectName));
+			reason.append(projectName).append(" ");
+		}
+		assertThat(reason.toString(), builds, everyItem( nullValue(FreeStyleBuild.class) ) );
+		
+	}
 }
