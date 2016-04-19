@@ -370,7 +370,7 @@ public class PerformExecutor {
 		}
 	}
 	
-	private void stopSharedParentRunningNodes(List<String> sharedBreakingParentNodeIds) {
+	private void stopSharedAncestorRunningNodes(List<String> sharedBreakingAncestorNodeIds) {
 		// just a relevant rare case, I just need the parent reference on each node...
 		List<TreeNode> nodes = TreeNodeUtils.getFlatNodes(this.coordinatorBuild.getOriginalExecutionPlan(), false);
 		HashMap<String, TreeNode> idNodeMap = new HashMap<String, TreeNode>( nodes.size()*3 );
@@ -380,9 +380,9 @@ public class PerformExecutor {
 		for(Map.Entry<String, AbstractBuild<?, ?>> entry: this.activeBuildMap.entrySet()){
 			String nodeId = entry.getKey();
 			TreeNode node = idNodeMap.get(nodeId);
-			List<String> activeBreakingParentNodeIds = prepareBreakingParentIds(node, false);
-			activeBreakingParentNodeIds.retainAll(sharedBreakingParentNodeIds);
-			if(!activeBreakingParentNodeIds.isEmpty()){
+			List<String> activeBreakingAncestorNodeIds = prepareBreakingAncestorIds(node, false);
+			activeBreakingAncestorNodeIds.retainAll(sharedBreakingAncestorNodeIds);
+			if(!activeBreakingAncestorNodeIds.isEmpty()){
 				AbstractBuild<?, ?> build = entry.getValue();
 				try{
 					build.doStop();
@@ -393,7 +393,7 @@ public class PerformExecutor {
 		}
 	}
 	
-	private List<String> prepareBreakingParentIds(TreeNode node, boolean shouldStopOnNonBreakingParent) {
+	private List<String> prepareBreakingAncestorIds(TreeNode node, boolean shouldStopOnNonBreakingParent) {
 		ArrayList<String> result = new ArrayList<String>();
 		while(null != (node=node.getParent()) ){
 			if(node.getState().breaking){
@@ -415,16 +415,16 @@ public class PerformExecutor {
 	 */
 	protected void onAtomicJobFailure(TreeNode node){
 		TreeNode origin = node;
-		List<String> sharedBreakingParentNodeIds = this.prepareBreakingParentIds(node, true);
-		this.failedParentNodeSet.addAll(sharedBreakingParentNodeIds);
+		List<String> sharedBreakingAncestorNodeIds = this.prepareBreakingAncestorIds(node, true);
+		this.failedParentNodeSet.addAll(sharedBreakingAncestorNodeIds);
 		
 		TreeNode rootNode = coordinatorBuild.getOriginalExecutionPlan();
 		TreeNode parent = origin.getParent();
 		
 		Result result = Result.UNSTABLE;
 		if(parent.getState().breaking){
-			stopSharedParentRunningNodes(sharedBreakingParentNodeIds);
-			if(sharedBreakingParentNodeIds.contains(rootNode.getId()) && rootNode.getState().breaking){
+			stopSharedAncestorRunningNodes(sharedBreakingAncestorNodeIds);
+			if(sharedBreakingAncestorNodeIds.contains(rootNode.getId()) && rootNode.getState().breaking){
 				// sharedBreakingParentNodeIds.contains means already traversed up to the root node
 				// rootNodeBreaking means the whole executorPool should shutdown();
 				softShutdown();
