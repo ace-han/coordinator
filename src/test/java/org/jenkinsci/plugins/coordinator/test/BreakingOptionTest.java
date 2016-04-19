@@ -45,10 +45,12 @@ public class BreakingOptionTest {
  					"4_L_2s"
  			};
  			String[] fourSecNames = {"11_L_4s", "212_L_4s", "122_L_4s"};
+ 			String[] eightSecNames = {"122_L_8s", "22_L_8s"};
  			String[] failureNames = {"121_L_Failure", "21_L_Failure", "3_L_Failure", "321_L_Failure"};
 
  			prepareSleepJobs(twoSecNames, 2000L);
  			prepareSleepJobs(fourSecNames, 4000L);
+ 			prepareSleepJobs(eightSecNames, 8000L);
  			prepareFailureJobs(failureNames);
         }
 	};
@@ -223,7 +225,9 @@ public class BreakingOptionTest {
 //		not triggered:
 //		  33_L_2s 
 //		not aborted:
-//		  22_L_2s, 322_L_2s
+//		  22_L_2s 
+//		aborted:
+//		  322_L_2s
 //		coordinator build should be unstable
 		
 		Jenkins jenkins = r.getInstance();
@@ -251,7 +255,7 @@ public class BreakingOptionTest {
 		}
 		assertThat(reason.toString(), builds, everyItem( nullValue(FreeStyleBuild.class) ) );
 		
-		String[] notAbortedProjectNames = {"22_L_2s", "322_L_2s"};
+		String[] notAbortedProjectNames = {"22_L_2s"};
 		reason = new StringBuilder("All these projects should not be aborted.\n");
 		ArrayList<Result> results = new ArrayList<Result>();
 		for(String projectName: notAbortedProjectNames){
@@ -260,6 +264,16 @@ public class BreakingOptionTest {
 			reason.append(projectName).append(" ");
 		}
 		assertThat(reason.toString(), results, everyItem( not(equalTo(Result.ABORTED) )) );
+		
+		String[] abortedProjectNames = {"322_L_2s"};
+		reason = new StringBuilder("All these projects should not be aborted.\n");
+		results = new ArrayList<Result>();
+		for(String projectName: abortedProjectNames){
+			FreeStyleBuild fbuild = retrieveFreeStyleProjectLastBuild(projectName);
+			results.add(fbuild.getResult());
+			reason.append(projectName).append(" ");
+		}
+		assertThat(reason.toString(), results, everyItem( equalTo(Result.ABORTED) ) );
 	}
 	
 	@LocalData
@@ -297,5 +311,70 @@ public class BreakingOptionTest {
 		}
 		assertThat(reason.toString(), builds, everyItem( nullValue(FreeStyleBuild.class) ) );
 		
+	}
+	
+	@LocalData
+	@Test 
+	public void abortSharedSameAncestorParallelBreakingQueueJobs() throws Exception {
+//		  Root_P_breaking
+//		  |-- 1_S_breaking
+//		  |   |__ 12_S_non_breaking
+//		  |   |   |-- 121_L_Failure
+//		  |   |   |__ 122_L_8s
+//		  |   |__ 13_L_2s
+//		  |-- 2_S_breaking
+//		  |   |-- 21_L_2s
+//		  |   |__ 22_L_8s
+//		  |__ 3_S_breaking
+//		      |-- 31_L_2s
+//		      |-- 32_P_breaking
+//	      	  |   |-- 321_L_Failure
+//    	  	  |   |__ 322_L_2s
+//		      |__ 33_L_2s
+//		  
+//		triggered ( AbstractProject.createExecutable() )
+//		  122_L_4s, 
+//		  21_L_2s, 22_L_2s, 
+//		  31_L_2s, 322_L_2s
+//		not triggered:
+//		  33_L_2s 
+//		aborted: 
+//		  122_L_8s, 22_L_8s, 322_L_2s
+//		coordinator build should be failure
+		
+		Jenkins jenkins = r.getInstance();
+		CoordinatorProject coordinatorProject = (CoordinatorProject) jenkins.getItem("test");
+		QueueTaskFuture<CoordinatorBuild> future = coordinatorProject.scheduleBuild2(0);
+		CoordinatorBuild build = future.get(60, TimeUnit.SECONDS);
+
+		assertEquals("Coordinator build should be failure.", Result.FAILURE, build.getResult());
+		
+		String[] triggeredProjectNames = {"122_L_8s", "21_L_2s", "22_L_8s", "31_L_2s", "322_L_2s"};
+		StringBuilder reason = new StringBuilder("All these projects should be triggered.\n");
+		ArrayList<FreeStyleBuild> builds = new ArrayList<FreeStyleBuild>();
+		for(String projectName: triggeredProjectNames){
+			builds.add(retrieveFreeStyleProjectLastBuild(projectName));
+			reason.append(projectName).append(" ");
+		}
+		assertThat(reason.toString(), builds, everyItem( notNullValue(FreeStyleBuild.class) ) );
+		
+		String[] notTriggeredProjectNames = {"33_L_2s"};
+		reason = new StringBuilder("All these projects should not be triggered.\n");
+		builds = new ArrayList<FreeStyleBuild>();
+		for(String projectName: notTriggeredProjectNames){
+			builds.add(retrieveFreeStyleProjectLastBuild(projectName));
+			reason.append(projectName).append(" ");
+		}
+		assertThat(reason.toString(), builds, everyItem( nullValue(FreeStyleBuild.class) ) );
+		
+		String[] notAbortedProjectNames = {"122_L_8s", "22_L_8s", "322_L_2s"};
+		reason = new StringBuilder("All these projects should be aborted.\n");
+		ArrayList<Result> results = new ArrayList<Result>();
+		for(String projectName: notAbortedProjectNames){
+			FreeStyleBuild fbuild = retrieveFreeStyleProjectLastBuild(projectName);
+			results.add(fbuild.getResult());
+			reason.append(projectName).append(" ");
+		}
+		assertThat(reason.toString(), results, everyItem( equalTo(Result.ABORTED) ) );
 	}
 }

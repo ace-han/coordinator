@@ -127,10 +127,6 @@ public class PerformExecutor {
 	private boolean isOkayToKickoff(TreeNode node) {
 		TreeNode origin = node;
 		boolean result = true;
-//		if(!node.isLeaf()){
-//			// parent node always okay to kickoff
-//			return result;
-//		}
 		// recursively goes up the parent see if any nodeId in failedParentNodeSet
 		// if not 21_L will kickoff anyway
 //		Root_S_breaking
@@ -340,11 +336,6 @@ public class PerformExecutor {
 	/*package*/ void prepareParentChildrenMap(TreeNode node,
 			boolean shouldChildrenParallelRun) {
 		List<TreeNode> children = node.getChildren();
-		// maybe I got way too suspicious
-//		if(children.isEmpty()){
-//			// should be not empty
-//			return;
-//		}
 		int capacity = Math.max((int) (children.size()/.75f) + 1, 16);
 		Map<String, TreeNode> idNodeMap = shouldChildrenParallelRun
 											? new ConcurrentHashMap<String, TreeNode>(capacity)
@@ -379,25 +370,62 @@ public class PerformExecutor {
 		}
 	}
 	
+	private void stopSharedParentRunningNodes(List<String> sharedBreakingParentNodeIds) {
+		// just a relevant rare case, I just need the parent reference on each node...
+		List<TreeNode> nodes = TreeNodeUtils.getFlatNodes(this.coordinatorBuild.getOriginalExecutionPlan(), false);
+		HashMap<String, TreeNode> idNodeMap = new HashMap<String, TreeNode>( nodes.size()*3 );
+		for(TreeNode node: nodes){
+			idNodeMap.put(node.getId(), node);
+		}
+		for(Map.Entry<String, AbstractBuild<?, ?>> entry: this.activeBuildMap.entrySet()){
+			String nodeId = entry.getKey();
+			TreeNode node = idNodeMap.get(nodeId);
+			List<String> activeBreakingParentNodeIds = prepareBreakingParentIds(node, false);
+			activeBreakingParentNodeIds.retainAll(sharedBreakingParentNodeIds);
+			if(!activeBreakingParentNodeIds.isEmpty()){
+				AbstractBuild<?, ?> build = entry.getValue();
+				try{
+					build.doStop();
+				} catch(Exception e){
+					formattedLog("softShutdown on %s failed with %s", build.getFullDisplayName(), e);
+				}
+			}
+		}
+	}
+	
+	private List<String> prepareBreakingParentIds(TreeNode node, boolean shouldStopOnNonBreakingParent) {
+		ArrayList<String> result = new ArrayList<String>();
+		while(null != (node=node.getParent()) ){
+			if(node.getState().breaking){
+				result.add(node.getId());
+			} else {
+				// if it becomes non breaking one then stop right here no more climbing up
+				if(shouldStopOnNonBreakingParent){
+					break;
+				}
+			}
+		}
+		return result;
+	}
+
+
 	/**
 	 * Node should not be parent node
 	 * @param node
 	 */
 	protected void onAtomicJobFailure(TreeNode node){
 		TreeNode origin = node;
-		while(null != (node=node.getParent()) ){
-			if(node.getState().breaking){
-				this.failedParentNodeSet.add(node.getId());
-			} else {
-				break;
-			}
-		}
-		boolean rootNodeBreaking = coordinatorBuild.getOriginalExecutionPlan().getState().breaking;
+		List<String> sharedBreakingParentNodeIds = this.prepareBreakingParentIds(node, true);
+		this.failedParentNodeSet.addAll(sharedBreakingParentNodeIds);
+		
+		TreeNode rootNode = coordinatorBuild.getOriginalExecutionPlan();
 		TreeNode parent = origin.getParent();
+		
 		Result result = Result.UNSTABLE;
 		if(parent.getState().breaking){
-			if(null==node && rootNodeBreaking){
-				// null==node means already traversed up to the root node
+			stopSharedParentRunningNodes(sharedBreakingParentNodeIds);
+			if(sharedBreakingParentNodeIds.contains(rootNode.getId()) && rootNode.getState().breaking){
+				// sharedBreakingParentNodeIds.contains means already traversed up to the root node
 				// rootNodeBreaking means the whole executorPool should shutdown();
 				softShutdown();
 				result = Result.FAILURE;
