@@ -9,14 +9,36 @@
 	background-image: url('../images/coordinator-leaf.ico'); 
 }
 
-.jstree-default .coordinator-serial {
+.jstree-default .jstree-search {
+	color: #008b8b;
+}
+
+/*
+* using .ico to support <IE10, while png is not working...
+*/
+.jstree-default .coordinator-breaking-serial {
 	background-image: url('../images/coordinator-serial.ico');
 }
 
-.jstree-default .coordinator-parallel {
+.jstree-default .coordinator-breaking-parallel {
 	background-image: url('../images/coordinator-parallel.ico');
 }
 
-.jstree-default .jstree-search {
-	color: #008b8b;
+.jstree-default .coordinator-non-breaking-serial {
+	background-image: url('../images/coordinator-non-breaking-serial.ico');
+}
+
+.jstree-default .coordinator-non-breaking-parallel {
+	background-image: url('../images/coordinator-non-breaking-parallel.ico');
+}
+
+/*
+* IE(even IE10...) is not okay with css3 filter properties
+* I might as well go with the background-image solution 
+*/
+.coordinator-non-breaking {
+	filter: hue-rotate(200deg) brightness(140%);
+	-webkit-filter: hue-rotate(200deg) brightness(140%);
+	-ms-filter: hue-rotate(200deg) brightness(140%);
+	-moz-filter: hue-rotate(200deg) brightness(140%);
 }

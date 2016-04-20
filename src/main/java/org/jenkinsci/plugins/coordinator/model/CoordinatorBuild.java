@@ -1,54 +1,53 @@
 package org.jenkinsci.plugins.coordinator.model;
 
-import hudson.Functions;
-import hudson.Util;
-import hudson.model.Action;
-import hudson.model.Build;
-import hudson.model.ParameterValue;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.CauseAction;
-import hudson.model.ParameterDefinition;
-import hudson.model.ParametersAction;
-import hudson.model.ParametersDefinitionProperty;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
-
-import jenkins.model.Jenkins;
-import net.sf.json.JSON;
-import net.sf.json.JSONNull;
-import net.sf.json.JSONObject;
 
 import org.apache.commons.jelly.JellyContext;
 import org.apache.commons.jelly.JellyException;
 import org.apache.commons.jelly.Script;
 import org.apache.commons.jelly.XMLOutput;
-import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.coordinator.utils.TreeNodeUtils;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.MetaClass;
-import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.WebApp;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.kohsuke.stapler.jelly.JellyClassTearOff;
 
+import hudson.Functions;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.Action;
+import hudson.model.Build;
+import hudson.model.ParameterDefinition;
+import hudson.model.ParameterValue;
+import hudson.model.ParametersAction;
+import hudson.model.ParametersDefinitionProperty;
+import jenkins.model.Jenkins;
+import net.sf.json.JSON;
+import net.sf.json.JSONNull;
+import net.sf.json.JSONObject;
+
 
 public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild> {
 	
-	private List<List<? extends Action>> oldActions = new ArrayList<List<? extends Action>>();
+	// fixes #4, Histories will get flushed and keep the last triggered build info after jenkins instance restart
+	// if we initialize it in the constructor, 
+	// it will flush what was already got unmarshaled from disk build.xml
+	// hierarchy CoordinatorBuild -> Build -> AbstractBuild -> Run#reload()#getDataFile().unmarshal(this)
+	private List<List<? extends Action>> oldActions;
 
 	private transient PerformExecutor performExecutor;
 	
@@ -73,15 +72,18 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
     }
 
 	public void addOldActions(List<? extends Action> oldActions) {
-		this.oldActions.add(oldActions);
+		this.getOldActions().add(oldActions);
 	}
 	
 	public List<List<? extends Action>> getOldActions(){
+		if(this.oldActions == null){
+			this.oldActions = new ArrayList<List<? extends Action>>();
+		}
 		return this.oldActions;
 	}
 	
 	public List<List<? extends Action>> getReversedHistoricalActions(){
-		ArrayList<List<? extends Action>> withCurrentActions = new ArrayList<List<? extends Action>>(this.oldActions);
+		ArrayList<List<? extends Action>> withCurrentActions = new ArrayList<List<? extends Action>>(this.getOldActions());
 		withCurrentActions.add(super.getAllActions());
 		ArrayList<List<? extends Action>> result = new ArrayList<List<? extends Action>>(withCurrentActions.size());
 		for(List<? extends Action> actions: withCurrentActions){
@@ -117,14 +119,18 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		this.performExecutor = performExecutor;
 	}
 	
+	/**
+	 *  currently being invoked in *.jelly file 
+	 * @return
+	 */
 	public AtomicBuildInfo getExecutionPlanInfo(){
-		return prepareAtomicBuildInfo(this.originalExecutionPlan);
+		return prepareAtomicBuildInfo(this.originalExecutionPlan, false);
 	}
 
 	private void prepareTableRowIndexMap() {
 		if(this.tableRowIndexMap == null){
 			this.tableRowIndexMap = new HashMap<String, Integer>();
-			List<TreeNode> list = this.originalExecutionPlan.getFlatNodes(true);
+			List<TreeNode> list = TreeNodeUtils.getFlatNodes(this.originalExecutionPlan, true);
 			for(int i=0; i<list.size(); i++){
 				TreeNode node = list.get(i);
 				this.tableRowIndexMap.put(node.getId(), i);
@@ -132,95 +138,82 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		}
 	}
 
-	public JSON doPollActiveAtomicBuildStatus(StaplerRequest req) {
+	
+	/**
+	 * ref #14, Status of coordinator job should be synced with the job status
+	 * @param req
+	 * @return
+	 */
+	public String doBuildCaptionHtml(StaplerRequest req){
+		JellyContext context = prepareJellyContextVariables(req);
+		context.setVariable("it", this);
+		return getCoordinatorBuildJellyScriptAsString(context, "buildCaption.jelly");
+	}
+	
+	/**
+	 * Return current build's status
+	 * @param req
+	 * @return a map of <nodeId, BuildTableRowHtml(tableRow.jelly)>
+	 */
+	public JSON doPollActiveAtomicBuildsTableRowHtml(StaplerRequest req){
 		if(this.performExecutor == null){
 			// no build or refresh or reload from disk
 			return JSONNull.getInstance();
 		}
-		Set<Entry<String, AbstractBuild<?, ?>>> entrySet = this.performExecutor.getActiveBuildMap().entrySet();
-		Map<String, String> result = new HashMap<String, String>(entrySet.size()*2 + 3);
-		TreeNode dummyNode = prepareDummyTreeNode();
+		CoordinatorParameterValue parameter = (CoordinatorParameterValue)this.getAction(ParametersAction.class)
+				.getParameter(CoordinatorParameterValue.PARAM_KEY);
+		// children under this rootNode will get its corresponding build number
+		// if it has already been built
+		TreeNode rootNode = parameter.getValue();
+		
+		// doesnt matter if byDepth or not for the case
+		// rootNode included
+		List<TreeNode> nodes = TreeNodeUtils.getFlatNodes(rootNode, true); 
 		JellyContext context = prepareJellyContextVariables(req);
-		for(Map.Entry<String, AbstractBuild<?, ?>> entry: entrySet){
-			AbstractBuild<?, ?> build = entry.getValue();
-			AtomicBuildInfo abi = new AtomicBuildInfo();
-			abi.build = build;
-			abi.treeNode = dummyNode;	// just taking advantage of tableRow.jelly
-			
-			// usually this is intermediate after getExecutionPlanInfo()
-			// consider the index is still okay to indicate
-			abi.tableRowIndex = this.tableRowIndexMap.get(entry.getKey()); 
-			result.put(entry.getKey(), getBuildInfoScriptAsString(context, abi));
+		Map<String, String> result = new HashMap<String, String>();
+		long now = Functions.getCurrentTime().getTime();
+		long timeDelta = 10 * 1000; // 10 seconds
+		for(TreeNode node: nodes){
+			if(!node.isLeaf()){
+				continue;
+			}
+			AtomicBuildInfo abi = prepareAtomicBuildInfo(node, true);
+			if(null == abi.build){
+				continue;
+			} else if(abi.build.isBuilding()){
+				result.put(node.getId(), getBuildInfoScriptAsString(context, abi));
+			} else if(abi.build.getStartTimeInMillis() + abi.build.getDuration() + timeDelta > now){
+				// for those just finished and not getting a chance to be updated in the jelly page
+				result.put(node.getId(), getBuildInfoScriptAsString(context, abi));
+			}
 		}
 		return JSONObject.fromObject(result);
 	}
 	
-	public String doAtomicBuildResultTableRowHtml(StaplerRequest req, @QueryParameter String nodeId, 
-			 @QueryParameter String jobName, @QueryParameter int buildNumber){
-		AtomicBuildInfo abi = new AtomicBuildInfo();
-		abi.build = retrieveTargetBuild(jobName, buildNumber);
-		if(abi.build == null){
-			// Here should be those jobs that are executing not much long, say <5 seconds.
-			// They may get no chance to update its tableRow.jelly during window.setTimeout interval by some scenario
-			// I might as well give it a full scan for a try to retrieve the correct buildNumber
-			if(StringUtils.isNotEmpty(nodeId)){
-				buildNumber = tryRetrievingBuildNumber(nodeId);
-				abi.build = retrieveTargetBuild(jobName, buildNumber);
-			}
-			if(abi.build == null){
-				String errorMsg = "Insufficient parameters to retrieve specific build, jobName: " 
-						+ jobName + " build #: "+ buildNumber;
-				LOGGER.warning(errorMsg);
-				return prepareBuildStatusErrorMessage(new IllegalArgumentException(errorMsg));
-			}
-		}
-		abi.treeNode = prepareDummyTreeNode();
-		prepareTableRowIndexMap();
-		abi.tableRowIndex = this.tableRowIndexMap.get(nodeId);
-		JellyContext context = prepareJellyContextVariables(req);
-		return getBuildInfoScriptAsString(context, abi);
-	}
-
-	private int tryRetrievingBuildNumber(String nodeId) {
-		List<TreeNode> breadthList = this.getOriginalExecutionPlan().getFlatNodes(false);
-		// since all leaf nodes are in the end of the list
-		Collections.reverse(breadthList);
-		
-		for(TreeNode node: breadthList){
-			if(nodeId.equals(node.getId())){
-				return node.getBuildNumber();
-			}
-		}
-		return 0;
-	}
-
-	private TreeNode prepareDummyTreeNode() {
-		TreeNode dummyNode = new TreeNode();
-		dummyNode.setText("Dummy for Polling Active Atomic Build Info");
-		return dummyNode;
-	}
-	
 	protected String getBuildInfoScriptAsString(JellyContext context, AtomicBuildInfo abi) {
 		context.setVariable("it", abi);
+		return getCoordinatorBuildJellyScriptAsString(context, "tableRow.jelly");
+	}
+	
+	private String getCoordinatorBuildJellyScriptAsString(JellyContext context, String scriptPath) {
         MetaClass mc = WebApp.getCurrent().getMetaClass(this.getClass());
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ClassLoader old = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(mc.classLoader.loader);
         try {
         	XMLOutput output = XMLOutput.createXMLOutput(baos);
-			Script script = mc.loadTearOff(JellyClassTearOff.class).findScript("tableRow.jelly");
+			Script script = mc.loadTearOff(JellyClassTearOff.class).findScript(scriptPath);
 			script.run(context, output);
 			return baos.toString("UTF-8");
 		} catch (JellyException e) {
-			LOGGER.warning("Exception in tableRow.jelly:\n"+e);
+			LOGGER.warning("Exception in "+scriptPath+":\n"+e);
 			return prepareBuildStatusErrorMessage(e);
 		} catch (UnsupportedEncodingException e) {
-			LOGGER.warning("Could not resolve tableRow.jelly in the specific charset:\n" + e);
+			LOGGER.warning("Could not resolve "+scriptPath+" in the specific charset:\n" + e);
 			return prepareBuildStatusErrorMessage(e);
 		} finally {
 			Thread.currentThread().setContextClassLoader(old);
 		}
-
 	}
 
 	protected JellyContext prepareJellyContextVariables(StaplerRequest req) {
@@ -231,6 +224,9 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
         Functions.initPageVariables(context);
         // this variable is needed to make "jelly:fmt" taglib work correctly
         context.setVariable("org.apache.commons.jelly.tags.fmt.locale",req.getLocale());
+        // context.setVariable("timezone", jsDetectedTimezone);
+        // http://stackoverflow.com/questions/3001260/how-to-detect-client-timezone
+        // unless there is a global setting explicitly set
 		return context;
 	}
 
@@ -240,7 +236,8 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 				+ "<div class='jstree-table-col lastDuration'>Server side error. Please checkout the server log</div></div>";
 	}
 
-	public AtomicBuildInfo prepareAtomicBuildInfo(TreeNode node){
+	public AtomicBuildInfo prepareAtomicBuildInfo(TreeNode node, boolean skipChildren){
+		// this method will be called in page histories.jelly, so take care
 		prepareTableRowIndexMap();
 		AtomicBuildInfo abi = new AtomicBuildInfo();
 		abi.treeNode = node;
@@ -249,10 +246,12 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		if(children.isEmpty()){
 			abi.build = retrieveTargetBuild(node.getText(), node.getBuildNumber());
 		} 
-		abi.children = new ArrayList<AtomicBuildInfo>(children.size());
-		for(TreeNode child: children){
-			AtomicBuildInfo abiChild = prepareAtomicBuildInfo(child);
-			abi.children.add(abiChild);
+		if(!skipChildren){
+			abi.children = new ArrayList<AtomicBuildInfo>(children.size());
+			for(TreeNode child: children){
+				AtomicBuildInfo abiChild = prepareAtomicBuildInfo(child, skipChildren);
+				abi.children.add(abiChild);
+			}
 		}
 		return abi;
 	}
@@ -270,20 +269,37 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		ArrayList<ParameterDefinition> result = new ArrayList<ParameterDefinition>();
 		List<ParameterValue> pvs = this.getAction(ParametersAction.class).getParameters();
 		List<ParameterDefinition> pds = super.getParent().getProperty(ParametersDefinitionProperty.class).getParameterDefinitions();
-		for(ParameterDefinition pd: pds){
-			for(ParameterValue pv: pvs){
-				ParameterDefinition toBeTested = pd.copyWithDefaultValue(pv);
-				// since it's a common pattern that copyWithDefaultValue will generate a new one
-				// I'm now taking this trick
-				if(pd != toBeTested){
-					pd = toBeTested;
-					break;
-				}
-			}
-			result.add(pd);
+		
+		// fix #12, Execution parameter values display disorder
+		for(int i=0; i<pds.size(); i++){
+			// based on index is okay for simplicity sake
+			ParameterDefinition pd = pds.get(i);
+			ParameterValue pv = pvs.get(i);
+			ParameterDefinition pdWithValue = pd.copyWithDefaultValue(pv);
+			result.add(pdWithValue);
 		}
 		
 		return result;
+	}
+	
+	public <T extends Action> T getAction(Class<T> type) {
+		T action = super.getAction(type);
+		if(!(action instanceof ParametersAction)){
+			return action;
+		}
+		// fix #31, NullPointerException while coordinator job triggered by 
+		// an upstream job with a plugin like parameterized-trigger-plugin
+		ParametersAction pa = (ParametersAction) action;
+		CoordinatorParameterValue parameter = (CoordinatorParameterValue)pa.getParameter(
+								CoordinatorParameterValue.PARAM_KEY);
+		if(parameter != null){
+			 return action;
+		}
+		CoordinatorParameterValue pv = new CoordinatorParameterValue(CoordinatorParameterValue.PARAM_KEY, 
+				"", getOriginalExecutionPlan());
+		T cast = type.cast(pa.createUpdated(Arrays.asList(pv)));
+		this.replaceAction(cast);
+		return cast;
 	}
 	
 	/**
@@ -293,7 +309,7 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 	 */
 	public static class AtomicBuildInfo {
 		public TreeNode treeNode;
-		public int tableRowIndex;
+		public int tableRowIndex; // for odd or even in page rendering
 		public AbstractBuild<?, ?> build;
 		
 		public List<AtomicBuildInfo> children;

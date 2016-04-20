@@ -1,10 +1,14 @@
-<!-- builder's config file -->
+<!-- 
+	build trigger config file, 
+	build's jelly is /hudson/model/AbstractBuild/index.jelly
+	and we are overwritting this for /hudson/model/Job/main.jelly(which is an empty page...)
+-->
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" 
-		xmlns:st="jelly:stapler" 
+<j:jelly xmlns:j="jelly:core"
+		xmlns:st="jelly:stapler"
 		xmlns:d="jelly:define"
-		xmlns:l="/lib/layout" 
-		xmlns:h="/lib/hudson" 
+		xmlns:l="/lib/layout"
+		xmlns:h="/lib/hudson"
 		xmlns:f="/lib/form"
 		xmlns:p="/lib/hudson/project">
 	<div>
@@ -12,12 +16,12 @@
 		<link rel="stylesheet" href="${rootURL}/plugin/coordinator/css/jstree-customized.css" />
 		<link rel="stylesheet" href="${rootURL}/plugin/coordinator/css/jstree-tablized.css" />
 		<link rel="stylesheet" href="${rootURL}/plugin/coordinator/css/tabs.css" />
-		
+
 		<j:set var="delay" value="${request.getParameter('delay')}" />
 		<!-- since we always set it.parameterized true in CoordinatorProject -->
 		<j:set var="parameterized" value="${!empty it.parent.parameterDefinitions}"/>
-			
-			
+
+
 		<div class="ui-tabs">
 			<div class="ui-tabs-header">
 				<j:choose>
@@ -27,7 +31,7 @@
 						</div>
 						<div class="ui-tab-active ui-tabs-tab">
 							<a id="showBuildersTrigger" href="#builderArea">Execution Plan</a>
-						</div>				
+						</div>
 					</j:when>
 					<j:otherwise>
 						<div class="ui-tab-active ui-tabs-tab">
@@ -44,10 +48,10 @@
 									class="org.jenkinsci.plugins.coordinator.model.CoordinatorBuild" />
 			        		</ul>
 			        	</div>
-						<div class="clear"></div>
+						<div class="clear2"></div>
 				</div>
 				<j:if test="${parameterized}">
-					<!-- It's a little nasty. But works fine and no duplicated j:when j:otherwise --> 
+					<!-- It's a little nasty. But works fine and no duplicated j:when j:otherwise -->
 					<j:out value="${h.xmlUnescape('&lt;div id=parameterArea class=ui-tabs-pane&gt;')}"/>
 				</j:if>
 						<f:form method="post" action="../build${empty(delay)?'':'?delay='+delay}"
@@ -85,8 +89,8 @@
 				</j:if>
 			</div>
 		</div>
-		<div class="clear"></div>
-		
+		<div class="clear2" style="height:1px;"></div>
+
 		<div id="bottom-sticker" >
 			<div class="bottom-sticker-inner">
 				<j:choose>
@@ -94,7 +98,7 @@
 		            	<input id="buildTrigger" type="button" value="${%Build}" class="yui-button" />
 					</j:when>
 					<j:otherwise>
-						<input type="button" value="${%No Build Permission}" class="yui-button" 
+						<input type="button" value="${%No Build Permission}" class="yui-button"
 								disabled="disabled" title="missing build permission!!!"/>
 					</j:otherwise>
 				</j:choose>
@@ -104,185 +108,8 @@
 	    	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/jquery.js"></script>
 	    	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/jstree/jstree.js"></script>
 	    	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/coordinator-utils.js"></script>
-	    	<script type="text/javascript"><![CDATA[
-	    		(function jQueryNamespacing($){
-	    			$(function(){
-	    				
-	    				
-	    				$('.ui-tabs').on('click', '.ui-tabs-tab', function(e){
-	    					e.preventDefault();	// just avoid appending #xxx to the url
-							var self = $(this);
-							var tabsContext = self.closest('.ui-tabs');
-							$('.ui-tab-active', tabsContext).removeClass('ui-tab-active');
-							var targetAnchor = self.addClass('ui-tab-active').find('a[href^="#"]').attr('href');
-							if(targetAnchor){
-								$('.ui-tabs-pane', tabsContext).hide();
-								$(targetAnchor, tabsContext).show();
-								// seems jQuery way doesnot work, will have to trigger it in hudson way
-								// it's written in hudson-behavior.js#fireEvent and hudson-behavior.js#adjustSticker
-								window.fireEvent(document.getElementsByTagName('body')[0], 'scroll');
-							}
-						});
-					
-						$('.ui-tab-active').click();
-						
-						// from coordinator-utils.js
-						jstreeTablization('#execPlan', 
-							{plugins: ['checkbox', 'types', 'decorators'],
-								// this combination with tie_selection set false is what ui expected
-							checkbox: {/*keep_selected_style: false, */whole_node: false, tie_selection: false},
-							types: {leaf: {icon: 'coordinator-icon coordinator-leaf'},
-									serial: {icon: 'coordinator-icon coordinator-serial'},
-									parallel: {icon: 'coordinator-icon coordinator-parallel'}},
-							decorators: {
-								'.jstree-table-row': function(liContainer, targetElem){
-										liContainer = $(liContainer);
-										targetElem = $(targetElem);
-										liContainer.prepend(targetElem);
-								},
-					
-							}},	function(jstreeInst){
-								uncheckBasedOnJobStatus(jstreeInst);
-								startPollingBuildInfo(jstreeInst);
-								// update the bottom build button position
-								jstreeInst.element
-									.on('after_open.jstree after_close.jstree', function(){
-										window.fireEvent(document.getElementsByTagName('body')[0], 'scroll');
-									});
-							});
-						
-						
-						function uncheckBasedOnJobStatus(jstreeInst, nodes){
-							var keepCheckedRegex = /(\.gif|(red|aborted)\.png)$/;
-							if(!nodes || !nodes.length){
-								var nodes = jstreeInst.get_json(null, {no_data: true, no_state: true, flat: true});
-							}
-							var container = jstreeInst.get_original_container_html();
-							$.each(nodes, function(i, node){
-								if(node.type!=='leaf'){
-									return true;
-								}
-								// var node = jstreeInst.get_node(node.id, true);
-								// we need to uncheck_node based on original_container_html 
-								var imgSrcUri = container.find('#' + node.id).children('.jstree-table-row')
-														.find('.jobStatus img').prop('src');
-								if(imgSrcUri && !keepCheckedRegex.test(imgSrcUri)){
-									jstreeInst.uncheck_node(node.id);
-								}
-							})
-						}
-						
-	    				var needEmptyJobStatusDoubleCheck = true;
-	    				
-	    				function startPollingBuildInfo(jstreeInst, pendingMap){
-	    					pendingMap = pendingMap || {};
-	    					var nodeId;
-	    					$.get('pollActiveAtomicBuildStatus')
-	    						.done(function( data, textStatus, jqXHR ) {
-	    							data = data || {};
-	    							var isEmptyResult = $.isEmptyObject(data) 
-	    								, toBeFinishedList = [];
-    								
-    								// prepare pendingMap
-    								if(!$.isEmptyObject(pendingMap)){
-    									// filter those considered should be finished
-    									for(nodeId in pendingMap){
-    										if(!(nodeId in data)){
-    											toBeFinishedList.push(nodeId);
-    										}
-    									}
-    									needEmptyJobStatusDoubleCheck = true;
-    								}
-    								
-    								if(isEmptyResult){
-    									if(needEmptyJobStatusDoubleCheck){
-	    									// see if any job finishes way too quick to update its final status
-    										$.each(jstreeInst.get_bottom_checked(), function(i, nodeId){
-    											if( jstreeInst.is_disabled(nodeId) && toBeFinishedList.indexOf(nodeId)!=-1 ){
-    												// since get_bottom_checked method does not filter disabled ones
-    												return true;
-    											}
-    											toBeFinishedList.push(nodeId);
-    										});
-    										needEmptyJobStatusDoubleCheck = false;
-    									}
-    								}
-    								
-    								pendingMap = data;
-    								
-    								for(nodeId in pendingMap){
-    									jstreeInst.update_redraw_template(nodeId, '.jstree-table-row', pendingMap[nodeId]);
-    								}
-    									
-    								// handle the toBeFinishedList for the very last time
-    								$.each(toBeFinishedList, function(i, nodeId){
-    									// extract the job name and build number from original_container_html
-    									var liContainer = jstreeInst.get_original_container_html().find('#'+nodeId);
-    									var jobName = liContainer.children('.model-link').text();
-    									var buildNumber = liContainer.find('.buildNumberLink').text();
-    									
-    									// trigger an ajax call to retrieve the generated tableRow.jelly
-    									(function(nodeId, jobName, buildNumber){
-    										$.get('atomicBuildResultTableRowHtml', 
-    											{nodeId: nodeId
-    											, jobName: jobName
-    											, buildNumber: buildNumber
-    											})
-    											.done(function( data, textStatus, jqXHR ) {
-    												jstreeInst.update_redraw_template(nodeId, '.jstree-table-row', data);
-    												setTimeout(function(){
-	    												// if need to uncheck the node
-    													uncheckBasedOnJobStatus(jstreeInst, 
-    														jstreeInst.get_json(nodeId, 
-    															{no_data: true, no_children: true, no_state: true, flat: true}));
-    													}, 500);
-    											})
-    											.fail(function( jqXHR, textStatus, errorThrown){
-				    								jstreeInst.update_redraw_template(nodeId, '.jstree-table-row', 
-				    									'<div class="jstree-wholerow jstree-table-row" style="background-color:#ffebeb;">'
-				    									+ '<div class="jstree-table-col jobStatus">&nbsp;</div>' // for padding the space
-				    									+ '<div class="jstree-table-col lastDuration">Network error: '
-				    									+ jqXHR.status + '. Please refresh the page.</div></div>')		
-	    										});
-    									})(nodeId, jobName, buildNumber);
-    								})
-    								var buildTriggerBtn = YAHOO.widget.Button.getButton('buildTrigger');
-    								if(buildTriggerBtn){
-    									buildTriggerBtn.set('disabled', !isEmptyResult);
-    								}
-    								
-    							})
-    							.fail(function( jqXHR, textStatus, errorThrown) {
-    								// popup an alert to stop the polling
-    								alert('Jenkins server encountered problems. Please check relevant server log.');
-    							})
-    							.always(function(){
-    								setTimeout(function(){
-    									startPollingBuildInfo(jstreeInst, pendingMap);
-    								}, 5000); // just follow jenkins itself polling interval
-    							})
-	    				}
-	    				
-	    				$('#bottom-sticker').on('click', '#buildTrigger', function(){
-	    					$('span.apply-button').trigger('click');
-	    				});
-	    				
-	    				
-	    				Event.observe($('form[name="parameters"]').get(0), "jenkins:apply", function(){
-	    					var jstreeInst = $('#execPlan').jstree(true);
-	    					var rootNode = jstreeInst.get_json(null, {no_data: true})[0];
-							// from coordinator-utils.js
-							optimized4NetworkTransmission(rootNode);
-							patchUpTreeNode(jstreeInst, rootNode);
-							var jsonString = Object.toJSON(rootNode);
-							$('#execPlanJsonStrInput').val(jsonString);
-	    				});
-	    				
-	    				// for the sake of simplicity, I would like to do this by override parameters
-	    				$('.task-link[href$="parameters"]').attr('href', location.href+'histories').text('Histories');
-	    			});
-	    		})(jQuery.noConflict());
-	    	]]></script>
+	    	<script type="text/javascript" src="${rootURL}/plugin/coordinator/js/cbuild/main.js"></script>
+	    	
 	    </st:once>
 	</div>
 </j:jelly>

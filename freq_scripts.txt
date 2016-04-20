@@ -1,0 +1,53 @@
+# most common used
+# Windows
+title coordinator
+set MAVEN_OPTS=-Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=8000,suspend=n
+mvn hpi:run -Djetty.port=8090 -Dhpi.prefix=/jenkins
+
+# Mac
+export MAVEN_OPTS="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=8000,suspend=n"
+mvn hpi:run -Djetty.port=8090 -Dhpi.prefix=/jenkins
+
+# Runnning Maven with JRebel
+# set MAVEN_OPTS=-javaagent:/path/to/jrebel.jar -XX:MaxPermSize=128m -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=8000,suspend=n
+# Windows
+title coordinator
+set MAVEN_OPTS=-javaagent:D:/Dev/eclipse/jee/plugins/org.zeroturnaround.eclipse.embedder_6.4.1.RELEASE/jrebel/jrebel.jar -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=8000,suspend=n
+mvn hpi:run -Djetty.port=8100 -Dhpi.prefix=/jenkins
+mvn clean hpi:run -Djetty.port=8090 -Dhpi.prefix=/jenkins
+
+# Mac
+export MAVEN_OPTS="-javaagent:/Applications/jee.app/Contents/Eclipse/plugins/org.zeroturnaround.eclipse.embedder_6.4.1.RELEASE/jrebel/jrebel.jar -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=8000,suspend=n"
+mvn hpi:run -Djetty.port=8100 -Dhpi.prefix=/jenkins
+mvn clean hpi:run -Djetty.port=8090 -Dhpi.prefix=/jenkins
+
+
+mvn eclipse:eclipse -DdownloadSource
+# which would package the source into the target while install won't
+mvn package -Dmaven.test.skip=true
+mvn install -Dmaven.test.skip=true
+
+#for download the source code
+mvn dependency:sources
+mvn dependency:resolve -Dclassifier=javadoc
+
+mvn clean
+
+# doc in https://wiki.jenkins-ci.org/display/JENKINS/Hosting+Plugins
+# diff account settings use below, in  ~/.m2/settings.xml or $MAVEN_HOME/conf/settings.xml
+  <servers>
+    <server>
+      <id>maven.jenkins-ci.org</id> <!-- For parent 1.397 or newer; before this use id java.net-m2-repository -->
+      <username>ace_jl_han</username>  
+      <password>regular_freq_simple_ones</password> 
+    </server>
+  </servers>
+
+# Do not split that Maven command into two separate Maven invocations (i. e. mvn release:prepare followed by mvn release:perform): It won't work as you expect and will mess up your release. Always execute the two Maven goals together, in one command.
+# for simplicity, just directly put github account crefidentials in -Dusername=... -Dpassword=...
+
+mvn release:prepare release:perform -Dusername=... -Dpassword=...
+
+
+1. mvn release:prepare release:perform -Dusername=... -Dpassword=...
+2. then merge on github branches including develop, master (DON'T manually merge! DON'T git flow release finish)
