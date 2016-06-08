@@ -44,7 +44,7 @@ public class BreakingOptionTest {
  					"31_L_2s", "33_L_2s", "3_L_2s", "322_L_2s", 
  					"4_L_2s"
  			};
- 			String[] fourSecNames = {"11_L_4s", "212_L_4s", "122_L_4s"};
+ 			String[] fourSecNames = {"11_L_4s", "212_L_4s", "122_L_4s", "323_L_4s"};
  			String[] eightSecNames = {"122_L_8s", "22_L_8s"};
  			String[] failureNames = {"121_L_Failure", "21_L_Failure", "3_L_Failure", "321_L_Failure"};
 
@@ -215,7 +215,8 @@ public class BreakingOptionTest {
 //		      |-- 31_L_2s
 //		      |-- 32_P_breaking
 //	      	  |   |-- 321_L_Failure
-//    	  	  |   |__ 322_L_2s
+//			  |   |-- 322_L_2s
+//    	  	  |   |__ 323_L_4s
 //		      |__ 33_L_2s
 //		  
 //		triggered ( AbstractProject.createExecutable() )
@@ -227,7 +228,7 @@ public class BreakingOptionTest {
 //		not aborted:
 //		  22_L_2s 
 //		aborted:
-//		  322_L_2s
+//		  323_L_4s
 //		coordinator build should be unstable
 		
 		Jenkins jenkins = r.getInstance();
@@ -265,7 +266,7 @@ public class BreakingOptionTest {
 		}
 		assertThat(reason.toString(), results, everyItem( not(equalTo(Result.ABORTED) )) );
 		
-		String[] abortedProjectNames = {"322_L_2s"};
+		String[] abortedProjectNames = {"323_L_4s"};
 		reason = new StringBuilder("All these projects should not be aborted.\n");
 		results = new ArrayList<Result>();
 		for(String projectName: abortedProjectNames){
