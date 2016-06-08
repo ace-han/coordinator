@@ -378,4 +378,29 @@ public class BreakingOptionTest {
 		}
 		assertThat(reason.toString(), results, everyItem( equalTo(Result.ABORTED) ) );
 	}
+	
+	@LocalData
+	@Test 
+	public void dontTriggerTwiceUnderSameNonBreakingAncester() throws Exception {
+//		  Root_S_breaking
+//		  |__ 1_S_non_breaking
+//		      |__ 12_S_breaking
+//		      |   |-- 121_L_Failure
+//		      |   |__ 122_S_non_breaking
+//			  |       |__ 122_L_4s
+//		      |
+//		      |__ 13_S_breaking
+//		          |__ 21_L_Failure
+//		  
+//		21_L_Failure should not be triggered twice (no previous build)
+		
+		Jenkins jenkins = r.getInstance();
+		CoordinatorProject coordinatorProject = (CoordinatorProject) jenkins.getItem("test");
+		QueueTaskFuture<CoordinatorBuild> future = coordinatorProject.scheduleBuild2(0);
+		CoordinatorBuild build = future.get(60, TimeUnit.SECONDS);
+
+		assertEquals("Coordinator build should be unstable.", Result.UNSTABLE, build.getResult());
+		FreeStyleBuild fsb = retrieveFreeStyleProjectLastBuild("21_L_Failure");
+		assertThat("21_L_Failure should not be triggered twice (no previous build)", fsb.getPreviousBuild(),  nullValue(FreeStyleBuild.class) ) ;
+	}
 }

@@ -69,6 +69,8 @@ public class PerformExecutor {
 		return activeBuildMap;
 	}
 
+	// since there is no ConcurrentHashSet...
+	private ConcurrentHashMap<String, Boolean> executedNodeIdMap = new ConcurrentHashMap<String, Boolean>();
 	private CoordinatorBuild coordinatorBuild;
 	
 	private BuildListener listener;
@@ -188,6 +190,11 @@ public class PerformExecutor {
 			return;
 		}
 		if(node.isLeaf()){
+			if( executedNodeIdMap.containsKey(node.getId()) ){
+				// fix #36, non-blocking postBuild double triggering jobs that are already executed
+				return;
+			}
+			executedNodeIdMap.put(node.getId(), Boolean.TRUE);
 			Authentication auth = Jenkins.getAuthentication();
 			executorPool.submit(new Execution(node, auth), node);
 		} else if(node.shouldChildrenParallelRun()){
