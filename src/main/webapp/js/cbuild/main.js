@@ -77,6 +77,14 @@
 			window.fireEvent(document.getElementsByTagName('body')[0], 'scroll');
 		});
 		
+		function disabledBuildTrigger(){
+			// when disabledThreshold becomes 0 the triggering btn will get enabled
+			$('#buildTrigger').data('disabledThreshold', 1);
+			var triggerBtn = YAHOO.widget.Button.getButton('buildTrigger');
+			if(triggerBtn){
+				triggerBtn.set('disabled', true);
+			}
+		}
 
 		Event.observe($('form[name="parameters"]').get(0), "jenkins:apply", function(){
 			var jstreeInst = $('#execPlan').jstree(true);
@@ -86,12 +94,28 @@
 			patchUpTreeNode(jstreeInst, rootNode);
 			var jsonString = Object.toJSON(rootNode);
 			$('#execPlanJsonStrInput').val(jsonString);
+			
+			// disable the trigger on ui from here
+			disabledBuildTrigger();
 		});
 		
+		// disable and set threshold to make sure at least first polling interval the triggering button get disabled
+		disabledBuildTrigger();
 		// ref #14, Status of coordinator job should be synced with the job status
 		(function pollBuildCaption(){
 			$.get('buildCaptionHtml')
 				.done(function( data, textStatus, jqXHR ) {
+					var disabledThreshold = $('#buildTrigger').data('disabledThreshold');
+					if( data.indexOf('In progress')==-1 && disabledThreshold==0 ){
+						// unlock the trigger btn here
+						//setTimeout(function(){
+							YAHOO.widget.Button.getButton('buildTrigger').set('disabled', false);
+						//}, 0);
+					} else if (disabledThreshold>0){
+						$('#buildTrigger').data('disabledThreshold', +disabledThreshold-1);
+					} else {
+						$('#buildTrigger').data('disabledThreshold', 0);
+					}
 					$('.build-caption.page-headline').replaceWith(data);
 				})
 				.fail(function( jqXHR, textStatus, errorThrown){
