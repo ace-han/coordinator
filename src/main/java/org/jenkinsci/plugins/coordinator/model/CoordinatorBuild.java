@@ -258,7 +258,7 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 
 	private AbstractBuild<?, ?> retrieveTargetBuild(String projectName,
 			int buildNumber){
-		AbstractProject<?, ?> project = (AbstractProject<?, ?>)Jenkins.getInstance().getItem(projectName);
+		AbstractProject<?, ?> project = (AbstractProject<?, ?>)Jenkins.getInstance().getItemByFullName(projectName);
 		if(project == null){
 			return null;
 		}

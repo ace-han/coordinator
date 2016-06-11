@@ -278,7 +278,7 @@ public class PerformExecutor {
 	
 
 	private AbstractProject<?, ?> prepareProxiedProject(final TreeNode node) {
-		AbstractProject<?, ?> atomicProject = (AbstractProject<?, ?>) Jenkins.getInstance().getItem(node.getText());
+		AbstractProject<?, ?> atomicProject = (AbstractProject<?, ?>) Jenkins.getInstance().getItemByFullName(node.getText());
 		if(atomicProject == null){
 			formattedLog("Atomic Job: %s not found\n", node.getText());
 			onAtomicJobFailure(node);
