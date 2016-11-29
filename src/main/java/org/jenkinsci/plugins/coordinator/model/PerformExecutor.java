@@ -18,6 +18,7 @@ import java.util.concurrent.TimeoutException;
 
 import javax.servlet.ServletException;
 
+import hudson.model.Item;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.jenkinsci.plugins.coordinator.model.TreeNode.State;
@@ -254,16 +255,20 @@ public class PerformExecutor {
 		
 	}
 
+	private static Item getProject(TreeNode node) {
+		return Jenkins.getInstance().getItemByFullName(node.getText());
+	}
+
 	private void doPostBuildLog(final TreeNode node, Result result) {
 		String jobName = node.getText();
 		synchronized(listener){
 			try {
 				StringBuilder sb = new StringBuilder(100);
 				// we use relative path
-				sb.append("../../").append(jobName);
+				sb.append("/").append(getProject(node).getUrl());
 				listener.getLogger().print("Atomic Job: ");
 				listener.hyperlink(sb.toString(), jobName);
-				sb.append('/').append(node.getBuildNumber()).append("/console");
+				sb.append(node.getBuildNumber()).append("/console");
 				listener.getLogger().print("  ");
 				listener.hyperlink(sb.toString(), "#" + node.getBuildNumber());
 				listener.getLogger().format(" Completed, Result: %s\n", result);
@@ -275,10 +280,9 @@ public class PerformExecutor {
 			}
 		}
 	}
-	
 
 	private AbstractProject<?, ?> prepareProxiedProject(final TreeNode node) {
-		AbstractProject<?, ?> atomicProject = (AbstractProject<?, ?>) Jenkins.getInstance().getItemByFullName(node.getText());
+		AbstractProject atomicProject = (AbstractProject<?, ?>) getProject(node);
 		if(atomicProject == null){
 			formattedLog("Atomic Job: %s not found\n", node.getText());
 			onAtomicJobFailure(node);
@@ -296,7 +300,7 @@ public class PerformExecutor {
 		en.setCallback(new InjectedProjectProxy(atomicProject, node));
 		atomicProject = (AbstractProject<?, ?>) en.create(new Class<?>[] {
 				ItemGroup.class, String.class },
-				new Object[] { atomicProject.getParent(), node.getText()});
+				new Object[] { atomicProject.getParent(), atomicProject.getName()});
 		return atomicProject;
 	}
 
