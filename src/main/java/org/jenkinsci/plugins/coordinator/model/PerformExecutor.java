@@ -264,7 +264,6 @@ public class PerformExecutor {
 		synchronized(listener){
 			try {
 				StringBuilder sb = new StringBuilder(100);
-				// we use relative path
 				sb.append("/").append(getProject(node).getUrl());
 				listener.getLogger().print("Atomic Job: ");
 				listener.hyperlink(sb.toString(), jobName);
