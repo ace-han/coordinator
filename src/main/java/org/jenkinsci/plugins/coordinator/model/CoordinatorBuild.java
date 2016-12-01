@@ -165,7 +165,7 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 		// if it has already been built
 		TreeNode rootNode = originalExecutionPlan;
 		ParametersAction parametersAction = getAction(ParametersAction.class);
-		if (parametersAction != null) {
+		if (parametersAction != null && parametersAction.getParameters().contains(CoordinatorParameterValue.PARAM_KEY)) {
 			CoordinatorParameterValue parameter = (CoordinatorParameterValue) parametersAction.getParameter(CoordinatorParameterValue.PARAM_KEY);
 			rootNode = parameter.getValue();
 		}

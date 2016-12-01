@@ -159,7 +159,7 @@ public class PerformExecutor {
         TreeNode requestRootNode = buildRootNode;
 
         ParametersAction parametersAction = this.coordinatorBuild.getAction(ParametersAction.class);
-        if (parametersAction != null) {
+        if (parametersAction != null && parametersAction.getParameters().contains(CoordinatorParameterValue.PARAM_KEY)) {
             CoordinatorParameterValue parameter = (CoordinatorParameterValue) parametersAction.getParameter(CoordinatorParameterValue.PARAM_KEY);
             requestRootNode = parameter.getValue();
             TreeNodeUtils.mergeState4Execution(buildRootNode, requestRootNode);
