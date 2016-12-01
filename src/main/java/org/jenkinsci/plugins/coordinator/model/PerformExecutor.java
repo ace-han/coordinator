@@ -162,8 +162,9 @@ public class PerformExecutor {
         if (parametersAction != null && parametersAction.getParameters().contains(CoordinatorParameterValue.PARAM_KEY)) {
             CoordinatorParameterValue parameter = (CoordinatorParameterValue) parametersAction.getParameter(CoordinatorParameterValue.PARAM_KEY);
             requestRootNode = parameter.getValue();
-            TreeNodeUtils.mergeState4Execution(buildRootNode, requestRootNode);
         }
+
+		TreeNodeUtils.mergeState4Execution(buildRootNode, requestRootNode);
 		// parameterMap for display build number in history page
 		parameterMap = new HashMap<String, TreeNode>();
 		for(TreeNode node: TreeNodeUtils.getFlatNodes(requestRootNode, false)){
