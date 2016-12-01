@@ -154,12 +154,16 @@ public class PerformExecutor {
 	 * set up failedParentNodeSet, parameterMap and parentChildrenMap
 	 */
 	private void prepareExecutionPlan() {
-		CoordinatorParameterValue parameter = (CoordinatorParameterValue)this.coordinatorBuild.getAction(ParametersAction.class)
-				.getParameter(CoordinatorParameterValue.PARAM_KEY);
-		TreeNode requestRootNode = parameter.getValue();
-		TreeNode buildRootNode = this.coordinatorBuild.getOriginalExecutionPlan();
-		TreeNodeUtils.mergeState4Execution(buildRootNode, requestRootNode);
-		
+        TreeNode buildRootNode = this.coordinatorBuild.getOriginalExecutionPlan();
+        // Use the configured execution plan above unless there's a requested change for this specific build via the "executionPlan" parameter.
+        TreeNode requestRootNode = buildRootNode;
+
+        ParametersAction parametersAction = this.coordinatorBuild.getAction(ParametersAction.class);
+        if (parametersAction != null) {
+            CoordinatorParameterValue parameter = (CoordinatorParameterValue) parametersAction.getParameter(CoordinatorParameterValue.PARAM_KEY);
+            requestRootNode = parameter.getValue();
+            TreeNodeUtils.mergeState4Execution(buildRootNode, requestRootNode);
+        }
 		// parameterMap for display build number in history page
 		parameterMap = new HashMap<String, TreeNode>();
 		for(TreeNode node: TreeNodeUtils.getFlatNodes(requestRootNode, false)){
