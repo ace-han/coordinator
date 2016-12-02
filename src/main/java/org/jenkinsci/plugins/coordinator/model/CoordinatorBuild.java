@@ -160,12 +160,16 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 			// no build or refresh or reload from disk
 			return JSONNull.getInstance();
 		}
-		CoordinatorParameterValue parameter = (CoordinatorParameterValue)this.getAction(ParametersAction.class)
-				.getParameter(CoordinatorParameterValue.PARAM_KEY);
+
 		// children under this rootNode will get its corresponding build number
 		// if it has already been built
-		TreeNode rootNode = parameter.getValue();
-		
+		TreeNode rootNode = originalExecutionPlan;
+		ParametersAction parametersAction = getAction(ParametersAction.class);
+		if (parametersAction != null && parametersAction.getParameters().contains(CoordinatorParameterValue.PARAM_KEY)) {
+			CoordinatorParameterValue parameter = (CoordinatorParameterValue) parametersAction.getParameter(CoordinatorParameterValue.PARAM_KEY);
+			rootNode = parameter.getValue();
+		}
+
 		// doesnt matter if byDepth or not for the case
 		// rootNode included
 		List<TreeNode> nodes = TreeNodeUtils.getFlatNodes(rootNode, true); 
