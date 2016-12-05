@@ -107,8 +107,12 @@ public class TreeNode {
 		return ToStringBuilder.reflectionToString(this);
 	}
 
-	public boolean equals(TreeNode node) {
+	public boolean equals(Object obj) {
 		// since we have id a more significant field
+		if(! (obj instanceof TreeNode)){
+			return false;
+		}
+		TreeNode node = (TreeNode) obj;
 		return EqualsBuilder.reflectionEquals(this, node, REFLECTION_EXCLUDE_FIELDS);
 	}
 

@@ -95,7 +95,8 @@
 			<div class="bottom-sticker-inner">
 				<j:choose>
 					<j:when test="${it.parent.hasPermission(it.parent.BUILD)}">
-		            	<input id="buildTrigger" type="button" value="${%Build}" class="yui-button" />
+		            	<input id="buildTrigger" type="button" value="${%Build}" class="yui-button" 
+		            		disabled="disabled"/>
 					</j:when>
 					<j:otherwise>
 						<input type="button" value="${%No Build Permission}" class="yui-button"

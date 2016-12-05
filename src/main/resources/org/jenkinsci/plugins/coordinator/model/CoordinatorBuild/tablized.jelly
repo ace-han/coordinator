@@ -16,7 +16,7 @@
 		<st:include page="tableRow.jelly" class="org.jenkinsci.plugins.coordinator.model.CoordinatorBuild" />
 		<j:choose>
 			<j:when test="${empty node.children}">
-				<a class="model-link" href="${rootURL}/job/${node.text}/">${node.text}</a>
+				<a class="model-link" href="${rootURL}/${it.build.parent.url}">${node.text}</a>
 			</j:when>
 			<j:otherwise>
 				<a>${node.text}</a>

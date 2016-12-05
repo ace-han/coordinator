@@ -160,12 +160,17 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 			// no build or refresh or reload from disk
 			return JSONNull.getInstance();
 		}
-		CoordinatorParameterValue parameter = (CoordinatorParameterValue)this.getAction(ParametersAction.class)
-				.getParameter(CoordinatorParameterValue.PARAM_KEY);
+
 		// children under this rootNode will get its corresponding build number
 		// if it has already been built
-		TreeNode rootNode = parameter.getValue();
-		
+		TreeNode rootNode = originalExecutionPlan;
+		ParametersAction parametersAction = getAction(ParametersAction.class);
+		CoordinatorParameterValue parameter = (CoordinatorParameterValue) parametersAction.getParameter(CoordinatorParameterValue.PARAM_KEY);
+		if (parameter != null) {
+		    // Use the configured execution plan above unless there's a requested change for this specific build via the "executionPlan" parameter.
+			rootNode = parameter.getValue();
+		}
+
 		// doesnt matter if byDepth or not for the case
 		// rootNode included
 		List<TreeNode> nodes = TreeNodeUtils.getFlatNodes(rootNode, true); 
@@ -258,7 +263,7 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 
 	private AbstractBuild<?, ?> retrieveTargetBuild(String projectName,
 			int buildNumber){
-		AbstractProject<?, ?> project = (AbstractProject<?, ?>)Jenkins.getInstance().getItem(projectName);
+		AbstractProject<?, ?> project = (AbstractProject<?, ?>)Jenkins.getInstance().getItemByFullName(projectName);
 		if(project == null){
 			return null;
 		}
