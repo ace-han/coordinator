@@ -154,17 +154,21 @@ public class PerformExecutor {
 	 * set up failedParentNodeSet, parameterMap and parentChildrenMap
 	 */
 	private void prepareExecutionPlan() {
-        TreeNode buildRootNode = this.coordinatorBuild.getOriginalExecutionPlan();
-        // Use the configured execution plan above unless there's a requested change for this specific build via the "executionPlan" parameter.
-        TreeNode requestRootNode = buildRootNode;
-
-        ParametersAction parametersAction = this.coordinatorBuild.getAction(ParametersAction.class);
-        if (parametersAction != null && parametersAction.getParameters().contains(CoordinatorParameterValue.PARAM_KEY)) {
-            CoordinatorParameterValue parameter = (CoordinatorParameterValue) parametersAction.getParameter(CoordinatorParameterValue.PARAM_KEY);
-            requestRootNode = parameter.getValue();
-        }
-
-		TreeNodeUtils.mergeState4Execution(buildRootNode, requestRootNode);
+		TreeNode buildRootNode = this.coordinatorBuild.getOriginalExecutionPlan();
+		TreeNode requestRootNode = null;
+		ParametersAction parametersAction = this.coordinatorBuild.getAction(ParametersAction.class);
+		if (parametersAction == null) {
+		  // the default build node should remain intact
+		  requestRootNode = buildRootNode.clone(true);
+		} else {
+		  ParameterValue parameter = parametersAction.getParameter(CoordinatorParameterValue.PARAM_KEY);
+		  if (parameter != null) {
+		    // Use the configured execution plan above unless there's a requested change for this specific build via the "executionPlan" parameter.
+		    requestRootNode = (TreeNode) parameter.getValue();
+		    TreeNodeUtils.mergeState4Execution(buildRootNode, requestRootNode);
+		  }
+		}
+		
 		// parameterMap for display build number in history page
 		parameterMap = new HashMap<String, TreeNode>();
 		for(TreeNode node: TreeNodeUtils.getFlatNodes(requestRootNode, false)){
