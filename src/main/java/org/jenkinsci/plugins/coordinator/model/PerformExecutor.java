@@ -157,16 +157,14 @@ public class PerformExecutor {
 		TreeNode buildRootNode = this.coordinatorBuild.getOriginalExecutionPlan();
 		TreeNode requestRootNode = null;
 		ParametersAction parametersAction = this.coordinatorBuild.getAction(ParametersAction.class);
-		if (parametersAction == null) {
-		  // the default build node should remain intact
-		  requestRootNode = buildRootNode.clone(true);
+		
+		CoordinatorParameterValue parameter = (CoordinatorParameterValue) parametersAction.getParameter(CoordinatorParameterValue.PARAM_KEY);
+		if (parameter != null) {
+			// Use the configured execution plan above unless there's a requested change for this specific build via the "executionPlan" parameter.
+			requestRootNode = parameter.getValue();
+			TreeNodeUtils.mergeState4Execution(buildRootNode, requestRootNode);
 		} else {
-		  ParameterValue parameter = parametersAction.getParameter(CoordinatorParameterValue.PARAM_KEY);
-		  if (parameter != null) {
-		    // Use the configured execution plan above unless there's a requested change for this specific build via the "executionPlan" parameter.
-		    requestRootNode = (TreeNode) parameter.getValue();
-		    TreeNodeUtils.mergeState4Execution(buildRootNode, requestRootNode);
-		  }
+			requestRootNode = buildRootNode.clone(true);
 		}
 		
 		// parameterMap for display build number in history page
