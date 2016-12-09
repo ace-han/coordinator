@@ -1,55 +1,36 @@
 package org.jenkinsci.plugins.coordinator.model;
 
+import com.infradna.tool.bridge_method_injector.WithBridgeMethods;
 import hudson.Extension;
-import hudson.model.Action;
-import hudson.model.Cause;
-import hudson.model.Item;
-import hudson.model.ItemGroup;
-import hudson.model.ParameterValue;
-import hudson.model.ParametersAction;
-import hudson.model.TopLevelItem;
+import hudson.model.*;
 import hudson.model.Cause.LegacyCodeCause;
 import hudson.model.queue.QueueTaskFuture;
-import hudson.model.Descriptor;
-import hudson.model.ParameterDefinition;
-import hudson.model.ParametersDefinitionProperty;
-import hudson.model.Project;
-import hudson.model.Run;
 import hudson.tasks.Builder;
 import hudson.util.DescribableList;
 import hudson.util.FormApply;
 import hudson.util.FormValidation;
 import hudson.util.QuotedStringTokenizer;
-
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Future;
-import java.util.logging.Logger;
-
-import javax.servlet.ServletException;
-
 import jenkins.model.Jenkins;
 import jenkins.util.TimeDuration;
 import net.sf.json.JSON;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
-
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
-import com.infradna.tool.bridge_method_injector.WithBridgeMethods;
+import javax.servlet.ServletException;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Future;
+import java.util.logging.Logger;
 
 
 @SuppressWarnings({ "unchecked" })
@@ -130,7 +111,11 @@ public class CoordinatorProject extends
 	
 	@Override
 	public DescriptorImpl getDescriptor() {
-		return (DescriptorImpl) Jenkins.getInstance().getDescriptorOrDie(getClass());
+		Jenkins instance = Jenkins.getInstance();
+		if(instance == null) {
+			throw new IllegalStateException("Jenkins is not ready.");
+		}
+		return (DescriptorImpl) instance.getDescriptorOrDie(getClass());
 	}
 
 	@Override
@@ -263,7 +248,12 @@ public class CoordinatorProject extends
 		
 		public JSON doCheckProjectExistence(@QueryParameter String idNameMap){
 			JSONObject checks = JSONObject.fromObject(idNameMap);
-			Set<String> projectNames = Jenkins.getInstance().getItemMap().keySet();
+			Jenkins instance = Jenkins.getInstance();
+			if(instance == null) {
+				throw new IllegalStateException("Jenkins is not ready.");
+			}
+
+			Set<String> projectNames = instance.getItemMap().keySet();
 			HashMap<String, String> notExist = new HashMap<String, String>(checks.size()<<1);
 			for(Object e: checks.entrySet()){
 				Map.Entry<String, String> entry = (Map.Entry<String, String>) e;
@@ -277,7 +267,13 @@ public class CoordinatorProject extends
 		
 		public JSON doSearchProjectNames(@QueryParameter String q){
 			ArrayList<String> result = new ArrayList<String>();
-			List<TopLevelItem> items = Jenkins.getInstance().getAllItems(TopLevelItem.class);
+
+			final Jenkins instance = Jenkins.getInstance();
+			if(instance == null) {
+				throw new IllegalStateException("Jenkins is not ready.");
+			}
+
+			List<TopLevelItem> items = instance.getAllItems(TopLevelItem.class);
 			for (TopLevelItem item : items) {
 				if (item.hasPermission(Item.READ)
 						&& !this.testInstance(item) // exclude the Coordinator Type

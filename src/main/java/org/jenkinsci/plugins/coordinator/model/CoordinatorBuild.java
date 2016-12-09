@@ -1,19 +1,12 @@
 package org.jenkinsci.plugins.coordinator.model;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Logger;
-
-import javax.servlet.ServletException;
-
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.Functions;
+import hudson.model.*;
+import jenkins.model.Jenkins;
+import net.sf.json.JSON;
+import net.sf.json.JSONNull;
+import net.sf.json.JSONObject;
 import org.apache.commons.jelly.JellyContext;
 import org.apache.commons.jelly.JellyException;
 import org.apache.commons.jelly.Script;
@@ -26,19 +19,13 @@ import org.kohsuke.stapler.WebApp;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.kohsuke.stapler.jelly.JellyClassTearOff;
 
-import hudson.Functions;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.Action;
-import hudson.model.Build;
-import hudson.model.ParameterDefinition;
-import hudson.model.ParameterValue;
-import hudson.model.ParametersAction;
-import hudson.model.ParametersDefinitionProperty;
-import jenkins.model.Jenkins;
-import net.sf.json.JSON;
-import net.sf.json.JSONNull;
-import net.sf.json.JSONObject;
+import javax.servlet.ServletException;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.*;
+import java.util.logging.Logger;
 
 
 public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild> {
@@ -77,19 +64,19 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 	
 	public List<List<? extends Action>> getOldActions(){
 		if(this.oldActions == null){
-			this.oldActions = new ArrayList<List<? extends Action>>();
+			this.oldActions = new ArrayList<>();
 		}
 		return this.oldActions;
 	}
 	
 	public List<List<? extends Action>> getReversedHistoricalActions(){
-		ArrayList<List<? extends Action>> withCurrentActions = new ArrayList<List<? extends Action>>(this.getOldActions());
+		ArrayList<List<? extends Action>> withCurrentActions = new ArrayList<>(this.getOldActions());
 		withCurrentActions.add(super.getAllActions());
-		ArrayList<List<? extends Action>> result = new ArrayList<List<? extends Action>>(withCurrentActions.size());
+		ArrayList<List<? extends Action>> result = new ArrayList<>(withCurrentActions.size());
 		for(List<? extends Action> actions: withCurrentActions){
 			// since foldCauseIntoOne make causeAction in the end of the list
 			// for ui displaying purpose, might as well doing this to ensure causeAction ahead of other actions
-			List<Action> tmp = new ArrayList<Action>(actions);
+			List<Action> tmp = new ArrayList<>(actions);
 			Action pa = null;
 	        for (Action a : tmp) {
 	            if (a instanceof ParametersAction) {
@@ -106,17 +93,22 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 
 	@Override
 	@RequirePOST
-	public synchronized HttpResponse doStop() throws IOException,
+	public HttpResponse doStop() throws IOException,
 			ServletException {
-		if(performExecutor != null){
-			performExecutor.shutdown();
+		synchronized (this) {
+			if(performExecutor != null){
+				performExecutor.shutdown();
+			}
 		}
+
 		return super.doStop();
 	}
 
 	public void setPerformExecutor(PerformExecutor performExecutor) {
 		// just for a clean stop
-		this.performExecutor = performExecutor;
+		synchronized (this) {
+			this.performExecutor = performExecutor;
+		}
 	}
 	
 	/**
@@ -129,7 +121,7 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 
 	private void prepareTableRowIndexMap() {
 		if(this.tableRowIndexMap == null){
-			this.tableRowIndexMap = new HashMap<String, Integer>();
+			this.tableRowIndexMap = new HashMap<>();
 			List<TreeNode> list = TreeNodeUtils.getFlatNodes(this.originalExecutionPlan, true);
 			for(int i=0; i<list.size(); i++){
 				TreeNode node = list.get(i);
@@ -156,9 +148,12 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 	 * @return a map of <nodeId, BuildTableRowHtml(tableRow.jelly)>
 	 */
 	public JSON doPollActiveAtomicBuildsTableRowHtml(StaplerRequest req){
-		if(this.performExecutor == null){
-			// no build or refresh or reload from disk
-			return JSONNull.getInstance();
+
+		synchronized (this) {
+			if(this.performExecutor == null){
+				// no build or refresh or reload from disk
+				return JSONNull.getInstance();
+			}
 		}
 
 		// children under this rootNode will get its corresponding build number
@@ -241,6 +236,7 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 				+ "<div class='jstree-table-col lastDuration'>Server side error. Please checkout the server log</div></div>";
 	}
 
+	@SuppressFBWarnings(value = "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD", justification = "abi.treeNode and abi.tableRowIndex will be used in page.")
 	public AtomicBuildInfo prepareAtomicBuildInfo(TreeNode node, boolean skipChildren){
 		// this method will be called in page histories.jelly, so take care
 		prepareTableRowIndexMap();
@@ -263,11 +259,16 @@ public class CoordinatorBuild extends Build<CoordinatorProject, CoordinatorBuild
 
 	private AbstractBuild<?, ?> retrieveTargetBuild(String projectName,
 			int buildNumber){
-		AbstractProject<?, ?> project = (AbstractProject<?, ?>)Jenkins.getInstance().getItemByFullName(projectName);
+		Jenkins jenkins = Jenkins.getInstance();
+		if(jenkins == null) {
+			throw new IllegalStateException("Jenkins is not started yet...");
+		}
+
+		AbstractProject<?, ?> project = (AbstractProject<?, ?>)jenkins.getItemByFullName(projectName);
 		if(project == null){
 			return null;
 		}
-		return (AbstractBuild<?, ?>)project.getBuildByNumber(buildNumber);
+		return project.getBuildByNumber(buildNumber);
 	}
 	
 	public List<ParameterDefinition> getParameterDefinitionsWithValues(){
