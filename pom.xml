@@ -59,6 +59,13 @@
 			<artifactId>cglib-nodep</artifactId>
 			<version>3.1</version><!-- used to be 2.1_3 -->
 		</dependency>
+
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>matrix-project</artifactId>
+            <version>1.4.1</version>
+            <optional>true</optional>
+        </dependency>
 		<!-- maven is brain-dead, test scope from parent is somehow not inherited  -->
 		<!-- <dependency>
 			<groupId>org.mockito</groupId>
@@ -92,7 +99,6 @@
 				<!-- version specified in parent pom -->
 				<extensions>true</extensions>
 				<configuration>
-					<showDeprecation>true</showDeprecation>
 					<warSourceExcludes>**/*.java</warSourceExcludes>
 				</configuration>
 			</plugin>
