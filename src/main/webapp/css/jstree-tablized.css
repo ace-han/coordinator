@@ -60,19 +60,21 @@
 }
 
 .jstree-default .jobStatus {
-	width: 16%;
+	width: 18%;
 }
 
 .jstree-default .lastDuration {
-	width: 10%;
+	width: 14%;
 }
 
+/*ref #6 should work on those resolution > 980px */
 .jstree-default .lastLaunch {
-	width: 16%;
+	width: 20%;
+	min-width: 160px;
 }
 
 .jstree-default .buildNumber {
-	width: 8%;
+	width: 10%;
 }
 
 .jstree-wholerow-container {

@@ -22,11 +22,20 @@
 		<j:when test="${empty it.treeNode.children}">
 			<div class="jstree-wholerow ${tableRowClass}">
 				<j:choose>
-					<j:when test="${empty build}">
+					<j:when test="${it.treeNode.buildNumber == 0}">
 						<div class="jstree-table-col jobStatus"><st:nbsp/></div>
 						<div class="jstree-table-col lastDuration">N/A</div>
 						<div class="jstree-table-col lastLaunch">N/A</div>
 						<div class="jstree-table-col buildNumber">#</div>
+					</j:when>
+					<j:when test="${empty build}">
+						<!-- this display no word-wrap word-break dont work... -->
+						<div class="jstree-table-col jobStatus" style="color:red;">
+							Missing.(already log rotated?)
+						</div>
+						<div class="jstree-table-col lastDuration">N/A</div>
+						<div class="jstree-table-col lastLaunch">N/A</div>
+						<div class="jstree-table-col buildNumber">${it.treeNode.buildNumber}</div>
 					</j:when>
 					<j:otherwise>
 						<div class="jstree-table-col jobStatus">
@@ -42,6 +51,7 @@
 						<div class="jstree-table-col buildNumber">
 							<a href="${rootURL + '/' + build.url}" class="model-link buildNumberLink">${build.number}</a>
 						</div>
+						
 					</j:otherwise>
 				</j:choose>
 				<div class="clear"></div>

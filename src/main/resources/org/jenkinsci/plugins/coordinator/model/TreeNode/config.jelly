@@ -7,7 +7,18 @@
 	xmlns:t="/lib/hudson" 
 	xmlns:f="/lib/form"
 	xmlns:p="/lib/hudson/project">
-	<li data-jstree='{"opened": ${it.state.opened}, "selected": ${it.state.selected}, "disabled":${it.state.disabled}, "checked": ${it.state.checked}, "type": "${it.type}"}'
+	<!--
+		Unnecessary to introduce breaking or execPattern here, 
+		since they could be extract from type
+	 <li data-jstree='{"opened": ${it.state.opened}, 
+		"selected": ${it.state.selected}, "disabled":${it.state.disabled}, 
+		"checked": ${it.state.checked}, "type": "${it.type}",
+		"breaking": ${it.state.breaking}, "execPattern": ${it.state.execPattern}}'
+		id="${it.id}">
+	 -->
+	<li data-jstree='{"opened": ${it.state.opened}, 
+		"selected": ${it.state.selected}, "disabled":${it.state.disabled}, 
+		"checked": ${it.state.checked}, "type": "${it.type}"}'
 		id="${it.id}">
 		<j:choose>
 			<j:when test="${empty it.children}">
