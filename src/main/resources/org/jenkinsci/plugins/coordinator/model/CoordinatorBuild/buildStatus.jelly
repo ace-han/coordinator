@@ -1,5 +1,8 @@
 
-<!-- displays a caption for build/externalRun. -->
+<!-- 
+	displays a caption for build/externalRun.
+	logic references to /lib/hudson/buildCaption.jelly 
+-->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" 
 	xmlns:st="jelly:stapler" 
