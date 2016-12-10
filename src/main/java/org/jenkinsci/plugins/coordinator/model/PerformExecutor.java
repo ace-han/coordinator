@@ -1,42 +1,7 @@
 package org.jenkinsci.plugins.coordinator.model;
 
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import javax.servlet.ServletException;
-
-import hudson.model.Item;
-import org.acegisecurity.Authentication;
-import org.acegisecurity.context.SecurityContextHolder;
-import org.jenkinsci.plugins.coordinator.model.TreeNode.State;
-import org.jenkinsci.plugins.coordinator.utils.TraversalHandler;
-import org.jenkinsci.plugins.coordinator.utils.TreeNodeUtils;
-
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.Action;
-import hudson.model.BuildListener;
-import hudson.model.CauseAction;
-import hudson.model.ItemGroup;
-import hudson.model.ParameterDefinition;
-import hudson.model.ParameterValue;
-import hudson.model.ParametersAction;
-import hudson.model.ParametersDefinitionProperty;
-import hudson.model.Result;
-import hudson.model.Run;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.model.*;
 import hudson.model.Cause.UpstreamCause;
 import hudson.model.Queue.Executable;
 import hudson.model.queue.QueueTaskFuture;
@@ -46,6 +11,17 @@ import jenkins.model.Jenkins;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
+import org.acegisecurity.Authentication;
+import org.acegisecurity.context.SecurityContextHolder;
+import org.jenkinsci.plugins.coordinator.model.TreeNode.State;
+import org.jenkinsci.plugins.coordinator.utils.TraversalHandler;
+import org.jenkinsci.plugins.coordinator.utils.TreeNodeUtils;
+
+import javax.servlet.ServletException;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.*;
+import java.util.concurrent.*;
 
 
 /**
@@ -188,7 +164,8 @@ public class PerformExecutor {
 		
 		failedParentNodeSet = new HashSet<String>();
 	}
-	
+
+	@SuppressFBWarnings(value="RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
 	/*package*/ void kickOffBuild(TreeNode node){
 		if(executorPool.isShutdown()
 				|| isDeactive(node)
@@ -204,6 +181,7 @@ public class PerformExecutor {
 			}
 			executedNodeIdMap.put(node.getId(), Boolean.TRUE);
 			Authentication auth = Jenkins.getAuthentication();
+
 			executorPool.submit(new Execution(node, auth), node);
 		} else if(node.shouldChildrenParallelRun()){
 			for(TreeNode child: node.getChildren()){
@@ -263,7 +241,11 @@ public class PerformExecutor {
 	}
 
 	private static Item getProject(TreeNode node) {
-		return Jenkins.getInstance().getItemByFullName(node.getText());
+		Jenkins instance = Jenkins.getInstance();
+		if(instance == null) {
+			throw new IllegalStateException("Jenkins is not ready.");
+		}
+		return instance.getItemByFullName(node.getText());
 	}
 
 	private void doPostBuildLog(final TreeNode node, Result result) {
@@ -277,11 +259,11 @@ public class PerformExecutor {
 				sb.append(node.getBuildNumber()).append("/console");
 				listener.getLogger().print("  ");
 				listener.hyperlink(sb.toString(), "#" + node.getBuildNumber());
-				listener.getLogger().format(" Completed, Result: %s\n", result);
+				listener.getLogger().format(" Completed, Result: %s%n", result);
 			} catch (IOException e) {
 				// only change to log the message without hyper link
 				listener.getLogger().format(
-						"Item(%1$s) #%2$-6d Completed, Result: %3$s\n", jobName,
+						"Item(%1$s) #%2$-6d Completed, Result: %3$s%n", jobName,
 						node.getBuildNumber(), result);
 			}
 		}
@@ -553,12 +535,18 @@ public class PerformExecutor {
 			postBuild(node);
 		}
 
+		@SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
 		private QueueTaskFuture<Executable> getRunningFuture(TreeNode node,	
 				AbstractProject<?, ?> atomicProject, List<Action> actions) {
+			Jenkins instance = Jenkins.getInstance();
+			if(instance == null) {
+				throw new IllegalStateException("Jenkins is not ready.");
+			}
+
 			int rescheduleCount = 0;
 			// TODO should be tested
 			while(rescheduleCount ++ < 3){
-				ScheduleResult result = Jenkins.getInstance().getQueue().schedule2(atomicProject, 0, actions);
+				ScheduleResult result = instance.getQueue().schedule2(atomicProject, 0, actions);
 				if(result.isRefused()){
 					formattedLog("Jenkins refused to add Atomic Job ( %s ), considered as a failure, aborting entire coordinator job\n", 
 								node.getText());

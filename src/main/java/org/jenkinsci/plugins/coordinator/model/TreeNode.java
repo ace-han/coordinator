@@ -1,23 +1,24 @@
 package org.jenkinsci.plugins.coordinator.model;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
+import net.sf.json.JSONObject;
+import net.sf.json.JsonConfig;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
-import net.sf.json.JSONObject;
-import net.sf.json.JsonConfig;
+public class TreeNode implements Serializable{
 
-public class TreeNode {
-	
 	private static final String[] REFLECTION_EXCLUDE_FIELDS = new String[] {"chidlren"};
 	static final JsonConfig JSON_CONFIG;
 	static final TreeNode EMPTY_ROOT;	// for every tree initialization
+	private static final long serialVersionUID = 1L;
+
 	static {
 		JSON_CONFIG = new JsonConfig();
 		JSON_CONFIG.setRootClass(TreeNode.class);
@@ -191,7 +192,9 @@ public class TreeNode {
 		}
 	}
 	
-	public static class State {
+	public static class State implements Serializable{
+		private static final long serialVersionUID = 1L;
+
 		public boolean opened = true;
 		public boolean disabled = false;
 	    public boolean selected = true;
